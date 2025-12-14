@@ -30,9 +30,12 @@ jobs:
       uses: actions/cache@v4.2.0
       with:
         path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-modules-${{ hashFiles('**/go.sum') }}
         restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-modules-
           ${{ runner.os }}-go-${{ matrix.go-version }}-
+        # Enable cache debug
+        enableCrossOsArchive: true
 
     - name: Download dependencies
       run: go mod download
@@ -46,9 +49,10 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5.1.2
       with:
-        file: ./coverage.out
+        files: ./coverage.out
         flags: unittests
         name: codecov-umbrella
+        fail_ci_if_error: false
 
   build:
     name: Build on ${{ matrix.os }}
@@ -70,8 +74,9 @@ jobs:
       uses: actions/cache@v4.2.0
       with:
         path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
         restore-keys: |
+          ${{ runner.os }}-go-build-
           ${{ runner.os }}-go-
 
     - name: Build
