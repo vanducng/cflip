@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/vanducng/cflip/compare/v1.2.0...v1.3.0) (2025-12-14)
+
+
+### Features
+
+* **ci:** integrate Homebrew publishing with GoReleaser ([d4b519e](https://github.com/vanducng/cflip/commit/d4b519e13a1aa6c9f2fb18729dd9b76b369f19a8))
+
 # [1.2.0](https://github.com/vanducng/cflip/compare/v1.1.2...v1.2.0) (2025-12-14)
 
 
