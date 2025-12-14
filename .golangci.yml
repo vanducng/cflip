@@ -1,35 +1,19 @@
-version: "2"
-
-run:
-  timeout: 5m
-  modules-download-mode: readonly
-
-linters-settings:
-  govet:
-    shadow: true
-  gocyclo:
-    min-complexity: 15
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: US
-  lll:
-    line-length: 140
+# golangci-lint configuration for CFLIP
+# Based on best practices from production Go projects
 
 issues:
+  exclude-use-default: true
+  max-same-issues: 0
+  max-issues-per-linter: 0
+
   exclude-rules:
+    # Exclude certain linters from running on tests files
     - path: _test\.go
       linters:
-        - gomnd
-        - goconst
         - gocyclo
         - errcheck
         - dupl
         - gosec
-        - lll
 
     # Exclude known linter issues
     - text: "weak cryptographic primitive"
@@ -40,3 +24,117 @@ issues:
     - text: "shadow: declaration of \"err\""
       linters:
         - govet
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - depguard
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nolintlint
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+    - goconst
+    - gocyclo
+    - dupl
+    - gocritic
+    - nakedret
+    - goprintffuncname
+    - dogsled
+    - errname
+    - errorlint
+    - exhaustive
+    - gochecknoinits
+    - gocognit
+    - godot
+    - godox
+    - gomoddirectives
+    - gomodguard
+    - nilnil
+    - noctx
+    - predeclared
+    - reassign
+    - rowserrcheck
+    - unparam
+    - wastedassign
+    - whitespace
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: io/ioutil
+            desc: 'use "io" or "os" packages instead'
+          - pkg: github.com/golang/protobuf
+            desc: 'use "google.golang.org/protobuf"'
+          - pkg: github.com/hashicorp/go-uuid
+            desc: 'use "github.com/google/uuid" instead'
+          - pkg: github.com/pborman/uuid
+            desc: 'use "github.com/google/uuid" instead'
+          - pkg: github.com/siddontang/go-log/log
+            desc: 'use "github.com/sirupsen/logrus" instead'
+          - pkg: github.com/tj/assert
+            desc: 'use "github.com/stretchr/testify/assert" instead'
+          - pkg: go.uber.org/atomic
+            desc: 'use "sync/atomic" instead'
+
+  misspell:
+    locale: US
+
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 100
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+
+  nolintlint:
+    allow-unused: true
+    require-explanation: true
+    require-specific: true
+
+  revive:
+    rules:
+      - name: unused-parameter
+        disabled: true
+
+  gomodguard:
+    allowed:
+      - github.com/vanducng/cflip
+    blocked:
+      - golang.org/x/exp
+
+output:
+  uniq-by-line: false
+
+run:
+  go: '1.21'
+  timeout: 5m
+  skip-dirs:
+    - (^|/)vendor/
+    - (^|/)test/
+    - (^|/)docs/
+  skip-dirs-use-default: false
