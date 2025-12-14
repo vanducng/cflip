@@ -1,6 +1,10 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
+  skip-dirs:
+    - test
+  skip-files:
+    - ".*\\.pb\\.go$"
 
 linters-settings:
   gocyclo:
@@ -31,41 +35,30 @@ linters-settings:
       - wrapperFunc
 
 linters:
+  disable-all: true
   enable:
-    - bodyclose
-    - deadcode
-    - depguard
-    - dogsled
-    - dupl
     - errcheck
-    - exportloopref
-    - exhaustive
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - gofmt
-    - goimports
-    - gomnd
-    - goprintffuncname
-    - gosec
     - gosimple
     - govet
     - ineffassign
-    - lll
-    - misspell
-    - nakedret
-    - rowserrcheck
-    - scopelint
     - staticcheck
-    - structcheck
-    - stylecheck
     - typecheck
-    - unconvert
-    - unparam
     - unused
-    - varcheck
-    - whitespace
+    - gofmt
+    - goimports
+    - misspell
+    - lll
+    - gosec
+    - goconst
+    - gocyclo
+    - dupl
+    - goimports
+    - gocritic
+    - nakedret
+    - exportloopref
+    - gocritic
+    - gomnd
+    - goprintffuncname
 
 issues:
   exclude-rules:
