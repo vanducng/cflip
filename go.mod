@@ -5,7 +5,9 @@ go 1.24.0
 toolchain go1.24.3
 
 require (
+	github.com/BurntSushi/toml v1.3.2
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/crypto v0.38.0
 	golang.org/x/term v0.38.0
 )
 

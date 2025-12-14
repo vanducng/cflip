@@ -40,10 +40,16 @@ func Execute(version, commit, buildTime string) error {
 
 // addCommands adds all subcommands to the root command
 func addCommands() {
+	// Legacy commands (for backward compatibility)
 	rootCmd.AddCommand(newSwitchCmd())
 	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newStatusCmd())
 	rootCmd.AddCommand(newBackupCmd())
+
+	// New v2 commands
+	rootCmd.AddCommand(newSwitchV2Cmd())
+	rootCmd.AddCommand(newOnboardV2Cmd())
+	rootCmd.AddCommand(newConfigCmd())
 }
 
 func init() {
