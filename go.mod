@@ -1,6 +1,6 @@
 module github.com/vanducng/cflip
 
-go 1.24.3
+go 1.21
 
 require (
 	github.com/spf13/cobra v1.10.2

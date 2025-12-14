@@ -3,8 +3,6 @@ run:
   modules-download-mode: readonly
 
 linters-settings:
-  govet:
-    shadow: true
   gocyclo:
     min-complexity: 15
   dupl:

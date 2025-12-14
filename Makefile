@@ -9,6 +9,7 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.bu
 
 # Go related variables
 GOCMD=go
+GOVERSION=1.21
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
