@@ -106,7 +106,7 @@ Your API key will be securely stored in ~/.claude/settings.json`
 func (p *GLMProvider) TestConnection(apiKey string) error {
 	client := &http.Client{}
 	ctx := context.Background()
-	req, err := http.NewRequestWithContext(ctx, "GET", p.config.BaseURL+"/v1/messages", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.BaseURL+"/v1/messages", http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

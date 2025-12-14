@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const ProviderAnthropic = "anthropic"
+
 // Manager handles Claude settings file operations
 type Manager struct {
 	config *Config
@@ -124,14 +126,14 @@ func (m *Manager) GetCurrentProvider() (string, error) {
 		case "https://api.z.ai/api/anthropic":
 			return "glm", nil
 		case "", "https://api.anthropic.com":
-			return "anthropic", nil
+			return ProviderAnthropic, nil
 		default:
 			return "custom", nil
 		}
 	}
 
 	// Default to anthropic if no base URL is set
-	return "anthropic", nil
+	return ProviderAnthropic, nil
 }
 
 // CreateBackup creates a backup of the current settings
