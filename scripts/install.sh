@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# CFLIP Installation Script
-# Installs cflip (Claude Provider Switcher)
+# CFLIP Install Script
+# Installs the Claude Provider Switcher (cflip) CLI tool
 
 set -e
 
@@ -12,31 +12,44 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Default values
-INSTALL_DIR="$HOME/.local/bin"
-PLATFORM=""
-ARCH=""
+REPO="vanducng/cflip"
 VERSION="latest"
+INSTALL_DIR="$HOME/.local/bin"
+BINARY_NAME="cflip"
 
-# Help function
-show_help() {
+# Help message
+help() {
     cat << EOF
-CFLIP Installation Script
+CFLIP Install Script
 
 USAGE:
-    install.sh [OPTIONS]
+    curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash
 
 OPTIONS:
-    -d, --dir DIR        Installation directory (default: $HOME/.local/bin)
-    -v, --version VER    Version to install (default: latest)
-    -p, --platform PLAT  Override platform detection
-    -a, --arch ARCH      Override architecture detection
-    -h, --help           Show this help message
+    VERSION=<version>    Install specific version (default: latest)
+    INSTALL_DIR=<dir>    Installation directory (default: $HOME/.local/bin)
+    BINARY_NAME=<name>   Binary name (default: cflip)
+
+ENVIRONMENT VARIABLES:
+    CFLIP_VERSION        Version to install (default: latest)
+    CFLIP_INSTALL_DIR    Installation directory (default: $HOME/.local/bin)
+    CFLIP_BINARY_NAME    Binary name (default: cflip)
 
 EXAMPLES:
-    ./install.sh                    # Install latest to ~/.local/bin
-    ./install.sh -d /usr/local/bin  # Install to /usr/local/bin
-    ./install.sh -v v1.0.0         # Install specific version
-    sudo ./install.sh -d /usr/local/bin  # Install system-wide
+    # Install latest version
+    curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash
+
+    # Install specific version
+    curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash -s -- --version=v1.1.2
+
+    # Install to custom directory
+    curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash -s -- --install-dir=/usr/local/bin
+
+    # Install with custom binary name
+    curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash -s -- --binary-name=claude-flip
+
+    # Using environment variables
+    CFLIP_VERSION=v1.1.2 curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash
 
 EOF
 }
@@ -54,24 +67,73 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Detect platform
-detect_platform() {
-    if [[ "$PLATFORM" != "" ]]; then
-        return
-    fi
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --version=*)
+                VERSION="${1#*=}"
+                shift
+                ;;
+            --version)
+                VERSION="$2"
+                shift 2
+                ;;
+            --install-dir=*)
+                INSTALL_DIR="${1#*=}"
+                shift
+                ;;
+            --install-dir)
+                INSTALL_DIR="$2"
+                shift 2
+                ;;
+            --binary-name=*)
+                BINARY_NAME="${1#*=}"
+                shift
+                ;;
+            --binary-name)
+                BINARY_NAME="$2"
+                shift 2
+                ;;
+            -h|--help)
+                help
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Unknown option: $1${NC}"
+                help
+                exit 1
+                ;;
+        esac
+    done
 
-    case "$(uname -s)" in
-        Darwin*)
-            PLATFORM="darwin"
+    # Override with environment variables if set
+    if [[ -n "$CFLIP_VERSION" ]]; then
+        VERSION="$CFLIP_VERSION"
+    fi
+    if [[ -n "$CFLIP_INSTALL_DIR" ]]; then
+        INSTALL_DIR="$CFLIP_INSTALL_DIR"
+    fi
+    if [[ -n "$CFLIP_BINARY_NAME" ]]; then
+        BINARY_NAME="$CFLIP_BINARY_NAME"
+    fi
+}
+
+# Detect OS
+detect_os() {
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    case $OS in
+        darwin)
+            OS="Darwin"
             ;;
-        Linux*)
-            PLATFORM="linux"
+        linux)
+            OS="Linux"
             ;;
-        CYGWIN*|MINGW*|MSYS*)
-            PLATFORM="windows"
+        mingw*|msys*|cygwin*)
+            OS="Windows"
             ;;
         *)
-            print_error "Unsupported platform: $(uname -s)"
+            echo -e "${RED}Unsupported OS: $OS${NC}"
             exit 1
             ;;
     esac
@@ -79,220 +141,270 @@ detect_platform() {
 
 # Detect architecture
 detect_arch() {
-    if [[ "$ARCH" != "" ]]; then
-        return
-    fi
-
-    case "$(uname -m)" in
+    ARCH=$(uname -m)
+    case $ARCH in
         x86_64|amd64)
-            ARCH="amd64"
+            ARCH="x86_64"
             ;;
-        arm64|aarch64)
+        aarch64|arm64)
             ARCH="arm64"
             ;;
         *)
-            print_error "Unsupported architecture: $(uname -m)"
+            echo -e "${RED}Unsupported architecture: $ARCH${NC}"
             exit 1
             ;;
     esac
 }
 
-# Check if directory is in PATH
-check_path() {
-    if [[ ":$PATH:" == *":$1:"* ]]; then
-        return 0
+# Get latest version from GitHub API
+get_latest_version() {
+    print_status "Fetching latest version..."
+    if command -v curl >/dev/null 2>&1; then
+        VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
+    elif command -v wget >/dev/null 2>&1; then
+        VERSION=$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
     else
-        return 1
+        echo -e "${RED}Neither curl nor wget is available${NC}"
+        exit 1
+    fi
+
+    if [ -z "$VERSION" ]; then
+        echo -e "${RED}Failed to get latest version${NC}"
+        exit 1
     fi
 }
 
-# Install from source
-install_from_source() {
-    print_status "Installing from source..."
+# Download function
+download() {
+    local url="$1"
+    local output="$2"
 
-    # Check if Go is installed
-    if ! command -v go &> /dev/null; then
-        print_error "Go is not installed. Please install Go first."
-        echo "Visit: https://golang.org/dl/"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL -o "$output" "$url"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$output" "$url"
+    else
+        echo -e "${RED}Neither curl nor wget is available${NC}"
         exit 1
     fi
+}
+
+# Verify checksum
+verify_checksum() {
+    local file="$1"
+    local checksum_url="$2"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$checksum_url" > "${file}.sha256"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "${file}.sha256" "$checksum_url"
+    fi
+
+    if [ -f "${file}.sha256" ]; then
+        if command -v shasum >/dev/null 2>&1; then
+            EXPECTED=$(grep "$file" "${file}.sha256" | awk '{print $1}')
+            ACTUAL=$(shasum -a 256 "$file" | awk '{print $1}')
+            if [ "$EXPECTED" = "$ACTUAL" ]; then
+                print_status "Checksum verified"
+            else
+                echo -e "${RED}Checksum verification failed${NC}"
+                echo "Expected: $EXPECTED"
+                echo "Actual: $ACTUAL"
+                exit 1
+            fi
+        else
+            print_warning "shasum not available, skipping checksum verification"
+        fi
+        rm -f "${file}.sha256"
+    fi
+}
+
+# Install binary
+install_binary() {
+    local os="$1"
+    local arch="$2"
+    local version="$3"
+
+    # Determine archive format
+    if [ "$os" = "Windows" ]; then
+        ARCHIVE_EXT="zip"
+    else
+        ARCHIVE_EXT="tar.gz"
+    fi
+
+    # Construct download URL
+    local archive_name="${BINARY_NAME}_${os}_${arch}.${ARCHIVE_EXT}"
+    local download_url="https://github.com/$REPO/releases/download/$version/$archive_name"
+    local checksum_url="https://github.com/$REPO/releases/download/$version/checksums.txt"
+
+    print_status "Downloading: $archive_name"
 
     # Create temporary directory
-    TMP_DIR=$(mktemp -d)
-    cd "$TMP_DIR"
+    local tmp_dir=$(mktemp -d)
+    trap "rm -rf $tmp_dir" EXIT
 
-    # Clone repository
-    print_status "Cloning repository..."
-    if [[ "$VERSION" == "latest" ]]; then
-        git clone https://github.com/vanducng/cflip.git
-    else
-        git clone --branch "$VERSION" https://github.com/vanducng/cflip.git
-    fi
-
-    cd cflip
-
-    # Build
-    print_status "Building cflip..."
-    make build
-
-    # Install
-    mkdir -p "$INSTALL_DIR"
-    cp bin/cflip "$INSTALL_DIR/"
-
-    # Cleanup
-    cd /
-    rm -rf "$TMP_DIR"
-
-    print_status "Installation complete!"
-}
-
-# Install from release
-install_from_release() {
-    print_status "Installing from release..."
-
-    # Determine file name
-    if [[ "$PLATFORM" == "windows" ]]; then
-        FILENAME="cflip-${ARCH}.exe"
-    else
-        FILENAME="cflip-${ARCH}"
-    fi
-
-    # Get release download URL
-    if [[ "$VERSION" == "latest" ]]; then
-        DOWNLOAD_URL="https://github.com/vanducng/cflip/releases/latest/download/${FILENAME}"
-    else
-        DOWNLOAD_URL="https://github.com/vanducng/cflip/releases/download/${VERSION}/${FILENAME}"
-    fi
-
-    # Create installation directory
-    mkdir -p "$INSTALL_DIR"
-
-    # Download
-    print_status "Downloading cflip..."
-    if command -v curl &> /dev/null; then
-        curl -L "$DOWNLOAD_URL" -o "$INSTALL_DIR/cflip${PLATFORM:+.exe}"
-    elif command -v wget &> /dev/null; then
-        wget "$DOWNLOAD_URL" -O "$INSTALL_DIR/cflip${PLATFORM:+.exe}"
-    else
-        print_error "Neither curl nor wget is available"
+    # Download archive
+    local archive_path="$tmp_dir/$archive_name"
+    if ! download "$download_url" "$archive_path"; then
+        echo -e "${RED}Failed to download: $download_url${NC}"
         exit 1
     fi
 
-    # Make executable (not for Windows)
-    if [[ "$PLATFORM" != "windows" ]]; then
-        chmod +x "$INSTALL_DIR/cflip"
+    # Download and verify checksum
+    verify_checksum "$archive_path" "$checksum_url"
+
+    # Extract archive
+    print_status "Extracting archive..."
+    cd "$tmp_dir"
+
+    if [ "$ARCHIVE_EXT" = "zip" ]; then
+        if command -v unzip >/dev/null 2>&1; then
+            unzip -q "$archive_path"
+        else
+            echo -e "${RED}unzip is required to extract ZIP files${NC}"
+            exit 1
+        fi
+    else
+        if command -v tar >/dev/null 2>&1; then
+            tar -xzf "$archive_path"
+        else
+            echo -e "${RED}tar is required to extract tar.gz files${NC}"
+            exit 1
+        fi
     fi
 
-    print_status "Installation complete!"
+    # Find the binary
+    local binary_path=$(find . -type f -name "$BINARY_NAME*" -executable | head -n 1)
+    if [ -z "$binary_path" ]; then
+        # Fallback: look for any file with the binary name
+        binary_path=$(find . -type f -name "$BINARY_NAME*" | head -n 1)
+    fi
+
+    if [ -z "$binary_path" ]; then
+        echo -e "${RED}Binary not found in archive${NC}"
+        echo "Contents:"
+        ls -la
+        exit 1
+    fi
+
+    # Make binary executable (for Unix systems)
+    if [ "$os" != "Windows" ]; then
+        chmod +x "$binary_path"
+    fi
+
+    # Create install directory
+    mkdir -p "$INSTALL_DIR"
+
+    # Move binary to install directory
+    local final_path="$INSTALL_DIR/$BINARY_NAME"
+    if [ "$os" = "Windows" ]; then
+        final_path="$INSTALL_DIR/$BINARY_NAME.exe"
+        # If the binary already has .exe extension, keep it
+        if [[ "$binary_path" == *.exe ]]; then
+            mv "$binary_path" "$final_path"
+        else
+            mv "$binary_path" "$final_path"
+        fi
+    else
+        mv "$binary_path" "$final_path"
+    fi
+
+    echo -e "${GREEN}Installed to: $final_path${NC}"
+}
+
+# Add to PATH if needed
+add_to_path() {
+    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        echo -e "${YELLOW}Warning: $INSTALL_DIR is not in your PATH${NC}"
+        echo -e "${YELLOW}Add the following to your shell profile:${NC}"
+        echo ""
+        if [ -n "$ZSH_VERSION" ] || [ -n "$BASH_VERSION" ]; then
+            echo "export PATH=\"\$PATH:$INSTALL_DIR\""
+            if [ -f "$HOME/.zshrc" ]; then
+                echo "# Then run: source ~/.zshrc"
+            elif [ -f "$HOME/.bashrc" ]; then
+                echo "# Then run: source ~/.bashrc"
+            elif [ -f "$HOME/.bash_profile" ]; then
+                echo "# Then run: source ~/.bash_profile"
+            fi
+        else
+            echo "export PATH=\"\$PATH:$INSTALL_DIR\""
+        fi
+        echo ""
+    fi
 }
 
 # Main installation
 main() {
+    echo -e "${GREEN}CFLIP Installer${NC}"
+    echo "=================="
+    echo ""
+
     # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -h|--help)
-                show_help
-                exit 0
-                ;;
-            -d|--dir)
-                INSTALL_DIR="$2"
-                shift 2
-                ;;
-            -v|--version)
-                VERSION="$2"
-                shift 2
-                ;;
-            -p|--platform)
-                PLATFORM="$2"
-                shift 2
-                ;;
-            -a|--arch)
-                ARCH="$2"
-                shift 2
-                ;;
-            *)
-                print_error "Unknown option: $1"
-                show_help
-                exit 1
-                ;;
-        esac
-    done
+    parse_args "$@"
 
-    print_status "Installing CFLIP (Claude Provider Switcher)"
-    print_status "Version: $VERSION"
-    print_status "Install directory: $INSTALL_DIR"
-
-    # Detect platform and architecture
-    detect_platform
+    # Detect OS and architecture
+    detect_os
     detect_arch
 
-    print_status "Platform: $PLATFORM-$ARCH"
+    echo "OS: $OS"
+    echo "Architecture: $ARCH"
+    echo "Install Directory: $INSTALL_DIR"
+    echo "Binary Name: $BINARY_NAME"
+    echo ""
+
+    # Get version if not specified
+    if [ "$VERSION" = "latest" ]; then
+        get_latest_version
+    else
+        # Ensure version starts with v
+        if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="v$VERSION"
+        fi
+    fi
+
+    echo -e "${GREEN}Installing CFLIP $VERSION${NC}"
+    echo ""
 
     # Check if install directory exists and is writable
-    if [[ ! -d "$INSTALL_DIR" ]]; then
-        print_status "Creating installation directory..."
+    if [ ! -d "$INSTALL_DIR" ]; then
+        print_status "Creating installation directory: $INSTALL_DIR"
         mkdir -p "$INSTALL_DIR" || {
-            print_error "Cannot create installation directory: $INSTALL_DIR"
+            echo -e "${RED}Cannot create installation directory: $INSTALL_DIR${NC}"
             exit 1
         }
     fi
 
     # Check if we can write to install directory
-    if [[ ! -w "$INSTALL_DIR" ]]; then
-        print_error "Cannot write to installation directory: $INSTALL_DIR"
-        print_status "Try running with sudo or choose a different directory"
+    if [ ! -w "$INSTALL_DIR" ]; then
+        echo -e "${RED}Cannot write to installation directory: $INSTALL_DIR${NC}"
+        echo "Try running with sudo or choose a different directory"
         exit 1
     fi
 
-    # Try to install from release first, fallback to source
-    if install_from_release; then
-        print_status "Installed from pre-built release"
-    else
-        print_warning "Pre-built release not available, installing from source"
-        install_from_source
-    fi
+    # Install binary
+    install_binary "$OS" "$ARCH" "$VERSION"
 
-    # Check if installation directory is in PATH
-    if ! check_path "$INSTALL_DIR"; then
-        print_warning "Installation directory is not in your PATH"
-        print_status "Add the following to your shell profile:"
-        echo ""
-        case "$(basename "$SHELL")" in
-            bash)
-                echo "export PATH=\"\$PATH:$INSTALL_DIR\""
-                echo "# Add to ~/.bashrc"
-                ;;
-            zsh)
-                echo "export PATH=\"\$PATH:$INSTALL_DIR\""
-                echo "# Add to ~/.zshrc"
-                ;;
-            fish)
-                echo "set -gx PATH \$PATH $INSTALL_DIR"
-                echo "# Add to ~/.config/fish/config.fish"
-                ;;
-            *)
-                echo "export PATH=\"\$PATH:$INSTALL_DIR\""
-                echo "# Add to your shell profile"
-                ;;
-        esac
-        echo ""
-    fi
+    # Add to PATH warning if needed
+    add_to_path
 
-    # Verify installation
-    if command -v "$INSTALL_DIR/cflip" &> /dev/null; then
-        print_status "CFLIP installed successfully!"
-        print_status "Run 'cflip --help' to get started"
+    echo ""
+    echo -e "${GREEN}Installation complete!${NC}"
+    echo ""
+    echo -e "${YELLOW}To get started:${NC}"
+    echo "  $BINARY_NAME --help"
+    echo ""
 
-        # Show version
-        if [[ "$PLATFORM" != "windows" ]]; then
-            "$INSTALL_DIR/cflip" --version 2>/dev/null || true
+    # Show version if available
+    if [ -f "$INSTALL_DIR/$BINARY_NAME" ] || [ -f "$INSTALL_DIR/$BINARY_NAME.exe" ]; then
+        echo -e "${YELLOW}Version:${NC}"
+        if [ "$OS" = "Windows" ]; then
+            "$INSTALL_DIR/$BINARY_NAME.exe" --version 2>/dev/null || echo "Version not available"
+        else
+            "$INSTALL_DIR/$BINARY_NAME" --version 2>/dev/null || echo "Version not available"
         fi
-    else
-        print_error "Installation verification failed"
-        exit 1
     fi
 }
 
-# Run main function
+# Run main function with all arguments
 main "$@"
