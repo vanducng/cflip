@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/vanducng/cflip/compare/v1.1.2...v1.2.0) (2025-12-14)
+
+
+### Features
+
+* **release:** update GoReleaser and install script ([7d97c99](https://github.com/vanducng/cflip/commit/7d97c99b747f35389a02a2831eaf53798312f804))
+
 ## [1.1.2](https://github.com/vanducng/cflip/compare/v1.1.1...v1.1.2) (2025-12-14)
 
 
