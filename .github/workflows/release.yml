@@ -89,3 +89,5 @@ jobs:
         env:
           # GitHub Token for authentication - automatically provided by GitHub Actions
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Token for Homebrew tap repository
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
