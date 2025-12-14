@@ -1,12 +1,12 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
-  skip-dirs:
-    - test
-  skip-files:
-    - ".*\\.pb\\.go$"
 
 linters-settings:
+  govet:
+    shadow: true
   gocyclo:
     min-complexity: 15
   dupl:
@@ -18,47 +18,6 @@ linters-settings:
     locale: US
   lll:
     line-length: 140
-  goimports:
-    local-prefixes: github.com/vanducng/cflip
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-
-linters:
-  disable-all: true
-  enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-    - gofmt
-    - goimports
-    - misspell
-    - lll
-    - gosec
-    - goconst
-    - gocyclo
-    - dupl
-    - goimports
-    - gocritic
-    - nakedret
-    - exportloopref
-    - gocritic
-    - gomnd
-    - goprintffuncname
 
 issues:
   exclude-rules:
@@ -81,6 +40,3 @@ issues:
     - text: "shadow: declaration of \"err\""
       linters:
         - govet
-
-# golangci.com configuration
-# https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
