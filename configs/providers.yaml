@@ -1,0 +1,63 @@
+# Provider Configuration Template
+# This file defines the available providers for CFLIP
+
+providers:
+  anthropic:
+    name: "Anthropic"
+    description: "Official Anthropic Claude API provider"
+    website: "https://www.anthropic.com"
+    api_docs: "https://docs.anthropic.com/claude/reference"
+    signup_url: "https://console.anthropic.com/"
+    base_url: "https://api.anthropic.com"
+    auth_type: "api_key"
+    auth_header: "x-api-key"
+    models:
+      haiku: "claude-3-5-haiku-20241022"
+      sonnet: "claude-3-5-sonnet-20241022"
+      opus: "claude-3-opus-20240229"
+    features:
+      - "Official models"
+      - "Full Claude capabilities"
+      - "Direct API access"
+    requirements:
+      - "Anthropic API key"
+      - "API credits or subscription"
+    setup_steps:
+      - "Get API key from https://console.anthropic.com/"
+      - "Ensure you have credits or active subscription"
+      - "Run: cflip switch anthropic"
+      - "Enter your API key when prompted"
+
+  glm:
+    name: "GLM by z.ai"
+    description: "GLM models from z.ai with Anthropic-compatible API"
+    website: "https://z.ai"
+    api_docs: "https://docs.z.ai/scenario-example/develop-tools/claude"
+    signup_url: "https://platform.z.ai"
+    base_url: "https://api.z.ai/api/anthropic"
+    auth_type: "bearer_token"
+    auth_header: "authorization"
+    models:
+      haiku: "glm-4.5-air"
+      sonnet: "glm-4.6"
+      opus: "glm-4.6"
+    features:
+      - "Code completion"
+      - "Repository Q&A"
+      - "Automated task management"
+      - "Vision MCP server"
+      - "Web Search MCP server"
+    requirements:
+      - "GLM Coding Plan subscription"
+      - "z.ai platform account"
+    setup_steps:
+      - "Visit https://platform.z.ai and register/login"
+      - "Subscribe to the GLM Coding Plan"
+      - "Generate API key from dashboard"
+      - "Run: cflip switch glm"
+      - "Enter API key when prompted"
+
+# Configuration for adding new providers:
+# - Each provider must have a unique key
+# - Required fields: name, description, base_url, models
+# - Optional fields: auth_type, auth_header, features, requirements, setup_steps
