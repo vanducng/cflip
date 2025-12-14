@@ -128,13 +128,15 @@ release:
 brews:
   - name: cflip
     homepage: https://github.com/vanducng/cflip
+    description: "A CLI tool to switch between Claude models and providers"
     repository:
       owner: vanducng
       name: homebrew-tap
       branch: main
+      token: "{{ .Env.GITHUB_TOKEN }}"
     commit_author:
-      name: goreleaserbot
-      email: goreleaser@carlosbecker.com
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
     goamd64: v1
     test: |
       system "#{bin}/cflip --version"
