@@ -141,47 +141,47 @@ brews:
     test: |
       system "#{bin}/cflip --version"
 
-# Docker images
-dockers:
-  # Use docker image for amd64
-  - image_templates:
-      - "ghcr.io/vanducng/cflip:{{ .Tag }}-amd64"
-      - "ghcr.io/vanducng/cflip:latest-amd64"
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
-      - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
-      - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
-      - "--platform=linux/amd64"
-    extra_files:
-      - README.md
-  # Use docker image for arm64
-  - image_templates:
-      - "ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8"
-      - "ghcr.io/vanducng/cflip:latest-arm64v8"
-    goarch: arm64
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
-      - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
-      - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
-      - "--platform=linux/arm64/v8"
-    extra_files:
-      - README.md
+# Docker images (temporarily disabled)
+# dockers:
+#   # Use docker image for amd64
+#   - image_templates:
+#       - "ghcr.io/vanducng/cflip:{{ .Tag }}-amd64"
+#       - "ghcr.io/vanducng/cflip:latest-amd64"
+#     dockerfile: Dockerfile
+#     use: buildx
+#     build_flag_templates:
+#       - "--pull"
+#       - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
+#       - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
+#       - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
+#       - "--platform=linux/amd64"
+#     extra_files:
+#       - README.md
+#   # Use docker image for arm64
+#   - image_templates:
+#       - "ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8"
+#       - "ghcr.io/vanducng/cflip:latest-arm64v8"
+#     goarch: arm64
+#     dockerfile: Dockerfile
+#     use: buildx
+#     build_flag_templates:
+#       - "--pull"
+#       - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
+#       - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
+#       - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
+#       - "--platform=linux/arm64/v8"
+#     extra_files:
+#       - README.md
 
-docker_manifests:
-  - name_template: ghcr.io/vanducng/cflip:{{ .Tag }}
-    image_templates:
-      - ghcr.io/vanducng/cflip:{{ .Tag }}-amd64
-      - ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8
-  - name_template: ghcr.io/vanducng/cflip:latest
-    image_templates:
-      - ghcr.io/vanducng/cflip:latest-amd64
-      - ghcr.io/vanducng/cflip:latest-arm64v8
+# docker_manifests:
+#   - name_template: ghcr.io/vanducng/cflip:{{ .Tag }}
+#     image_templates:
+#       - ghcr.io/vanducng/cflip:{{ .Tag }}-amd64
+#       - ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8
+#   - name_template: ghcr.io/vanducng/cflip:latest
+#     image_templates:
+#       - ghcr.io/vanducng/cflip:latest-amd64
+#       - ghcr.io/vanducng/cflip:latest-arm64v8
 
 # GitHub Actions
 announce:
