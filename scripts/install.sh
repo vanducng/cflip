@@ -193,6 +193,7 @@ download() {
 verify_checksum() {
     local file="$1"
     local checksum_url="$2"
+    local filename=$(basename "$file")
 
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL "$checksum_url" > "${file}.sha256"
@@ -202,7 +203,7 @@ verify_checksum() {
 
     if [ -f "${file}.sha256" ]; then
         if command -v shasum >/dev/null 2>&1; then
-            EXPECTED=$(grep "$file" "${file}.sha256" | awk '{print $1}')
+            EXPECTED=$(grep "$filename" "${file}.sha256" | awk '{print $1}')
             ACTUAL=$(shasum -a 256 "$file" | awk '{print $1}')
             if [ "$EXPECTED" = "$ACTUAL" ]; then
                 print_status "Checksum verified"
@@ -210,6 +211,7 @@ verify_checksum() {
                 echo -e "${RED}Checksum verification failed${NC}"
                 echo "Expected: $EXPECTED"
                 echo "Actual: $ACTUAL"
+                echo "Filename: $filename"
                 exit 1
             fi
         else
@@ -274,10 +276,17 @@ install_binary() {
     fi
 
     # Find the binary
-    local binary_path=$(find . -type f -name "$BINARY_NAME*" -executable | head -n 1)
+    local binary_path=""
+    if [ "$os" != "Windows" ]; then
+        binary_path=$(find . -type f -name "$BINARY_NAME" -executable | head -n 1)
+    fi
     if [ -z "$binary_path" ]; then
         # Fallback: look for any file with the binary name
-        binary_path=$(find . -type f -name "$BINARY_NAME*" | head -n 1)
+        binary_path=$(find . -type f -name "$BINARY_NAME" | head -n 1)
+        # Also check for .exe extension on Windows
+        if [ -z "$binary_path" ] && [ "$os" = "Windows" ]; then
+            binary_path=$(find . -type f -name "$BINARY_NAME.exe" | head -n 1)
+        fi
     fi
 
     if [ -z "$binary_path" ]; then
