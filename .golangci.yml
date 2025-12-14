@@ -1,5 +1,3 @@
-version: "2"
-
 linters:
   enable:
     - bodyclose
@@ -72,3 +70,6 @@ issues:
     - text: "shadow: declaration of \"err\""
       linters:
         - govet
+
+run:
+  timeout: 5m

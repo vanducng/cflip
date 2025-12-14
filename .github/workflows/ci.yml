@@ -75,6 +75,7 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Build
+      shell: bash
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           go build -v -o cflip.exe ./cmd/cflip
@@ -83,13 +84,13 @@ jobs:
         fi
 
     - name: Test build artifacts
+      shell: bash
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           ./cflip.exe --help
         else
           ./cflip --help
         fi
-      shell: bash
 
   lint:
     name: Lint
@@ -106,5 +107,5 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: latest
+        version: v1.64.8
         args: --timeout=5m
