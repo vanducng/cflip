@@ -19,15 +19,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v5.3.0
       with:
         go-version: ${{ matrix.go-version }}
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v4.1.2
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
@@ -44,7 +44,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage.out ./...
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5.1.2
       with:
         file: ./coverage.out
         flags: unittests
@@ -59,15 +59,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v5.3.0
       with:
         go-version: '1.21'
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v4.1.2
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -96,10 +96,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v5.3.0
       with:
         go-version: '1.21'
 
