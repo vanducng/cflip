@@ -15,13 +15,25 @@ CFLIP is a Go CLI tool that enables seamless switching between different Claude 
 
 ## Installation
 
+### From Release (Recommended)
+Download the appropriate binary for your platform from the [releases page](https://github.com/vanducng/cflip/releases).
+
+### Using Homebrew (macOS)
+```bash
+brew tap vanducng/tap
+brew install cflip
+```
+
 ### From Source
 ```bash
 go install github.com/vanducng/cflip@latest
 ```
 
-### From Release (Coming Soon)
-Download the appropriate binary for your platform from the [releases page](https://github.com/vanducng/cflip/releases).
+### Docker
+```bash
+docker pull ghcr.io/vanducng/cflip:latest
+docker run --rm -v ~/.claude:/root/.claude ghcr.io/vanducng/cflip:latest
+```
 
 ## Usage
 
@@ -120,6 +132,26 @@ make test
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Releases
+
+Releases are automated using [GoReleaser](https://goreleaser.com/) and include:
+
+- **Binaries**: Pre-compiled binaries for:
+  - Linux (amd64, arm64)
+  - macOS (Intel, Apple Silicon)
+  - Windows (amd64)
+- **Homebrew Formula**: Automatic formula updates
+- **Docker Images**: Multi-architecture Docker images
+- **Checksums**: SHA256 checksums for all artifacts
+
+### Creating a Release
+
+1. Update version in code if needed
+2. Commit changes: `git commit -m "Release v1.0.0"`
+3. Create tag: `git tag v1.0.0`
+4. Push: `git push --follow-tags`
+5. GitHub Actions will automatically create the release
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -128,3 +160,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Inspired by [claude-code-switch](https://github.com/foreveryh/claude-code-switch)
 - Built with [Cobra](https://github.com/spf13/cobra) and [Viper](https://github.com/spf13/viper)
+- Releases automated with [GoReleaser](https://goreleaser.com/)

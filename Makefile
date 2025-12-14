@@ -1,4 +1,4 @@
-.PHONY: help build install test clean fmt lint vet deps release
+.PHONY: help build install test clean fmt lint vet deps release snapshot check-release
 
 # Variables
 BINARY_NAME=cflip
@@ -86,3 +86,25 @@ dev: ## Run in development mode
 
 run: build ## Build and run
 	./$(BUILD_DIR)/$(BINARY_NAME)
+
+# GoReleaser commands
+check-release: ## Check GoReleaser configuration
+	@if command -v goreleaser >/dev/null 2>&1; then \
+		goreleaser check; \
+	else \
+		echo "GoReleaser not installed. Install it with: brew install goreleaser"; \
+	fi
+
+snapshot: ## Build snapshot with GoReleaser
+	@if command -v goreleaser >/dev/null 2>&1; then \
+		goreleaser build --snapshot --clean; \
+	else \
+		echo "GoReleaser not installed. Install it with: brew install goreleaser"; \
+	fi
+
+release: ## Release with GoReleaser (requires tag)
+	@if command -v goreleaser >/dev/null 2>&1; then \
+		goreleaser release --clean; \
+	else \
+		echo "GoReleaser not installed. Install it with: brew install goreleaser"; \
+	fi

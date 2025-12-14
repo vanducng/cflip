@@ -1,0 +1,205 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      # windows/arm64 is not supported by Windows 10 before version 1709
+      - goos: windows
+        goarch: arm64
+    binary: cflip
+    main: ./cmd/cflip
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.buildTime={{.Date}}
+      - -X main.builtBy=goreleaser
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - docs/USAGE.md
+      - scripts/install.sh
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+release:
+  github:
+    owner: vanducng
+    name: cflip
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  header: |
+    ## CFLIP {{.Version}}
+
+    Welcome to this new release!
+  footer: |
+    ## Docker Images
+
+    - `docker pull ghcr.io/vanducng/cflip:{{.Tag}}`
+    - `docker pull ghcr.io/vanducng/cflip:latest` (for the latest release)
+
+    ## Installation
+
+    ### From binary
+    Download the binary for your platform from the assets below.
+
+    ### Using Homebrew (macOS)
+    ```bash
+    brew install vanducng/tap/cflip
+    ```
+
+    ### Using Go
+    ```bash
+    go install github.com/vanducng/cflip@{{.Tag}}
+    ```
+
+    ## Verification
+
+    You can verify the integrity of the downloaded files using the checksums.txt file.
+
+# Homebrew tap configuration
+brews:
+  - name: cflip
+    homepage: https://github.com/vanducng/cflip
+    repository:
+      owner: vanducng
+      name: homebrew-tap
+      branch: main
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    goamd64: v1
+    test: |
+      system "#{bin}/cflip --version"
+
+# Docker images
+dockers:
+  # Use docker image for amd64
+  - image_templates:
+      - "ghcr.io/vanducng/cflip:{{ .Tag }}-amd64"
+      - "ghcr.io/vanducng/cflip:latest-amd64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
+      - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
+      - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - README.md
+  # Use docker image for arm64
+  - image_templates:
+      - "ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8"
+      - "ghcr.io/vanducng/cflip:latest-arm64v8"
+    goarch: arm64
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=io.github.{{.ProjectName}}.version={{.Version}}"
+      - "--label=io.github.{{.ProjectName}}.commit={{.Commit}}"
+      - "--label=io.github.{{.ProjectName}}.date={{.Date}}"
+      - "--platform=linux/arm64/v8"
+    extra_files:
+      - README.md
+
+docker_manifests:
+  - name_template: ghcr.io/vanducng/cflip:{{ .Tag }}
+    image_templates:
+      - ghcr.io/vanducng/cflip:{{ .Tag }}-amd64
+      - ghcr.io/vanducng/cflip:{{ .Tag }}-arm64v8
+  - name_template: ghcr.io/vanducng/cflip:latest
+    image_templates:
+      - ghcr.io/vanducng/cflip:latest-amd64
+      - ghcr.io/vanducng/cflip:latest-arm64v8
+
+# GitHub Actions
+announce:
+  twitter:
+    enabled: false
+  reddit:
+    enabled: false
+  slack:
+    enabled: false
+  discord:
+    enabled: false
+  teams:
+    enabled: false
+  smtp:
+    enabled: false
+  mattermost:
+    enabled: false
+  linkedin:
+    enabled: false
+  telegram:
+    enabled: false
+  webhook:
+    enabled: false
