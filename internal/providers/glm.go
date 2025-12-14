@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -104,7 +105,8 @@ Your API key will be securely stored in ~/.claude/settings.json`
 // TestConnection makes a simple API call to verify the connection
 func (p *GLMProvider) TestConnection(apiKey string) error {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", p.config.BaseURL+"/v1/messages", nil)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.BaseURL+"/v1/messages", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -117,7 +119,12 @@ func (p *GLMProvider) TestConnection(apiKey string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to GLM API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// Log error but don't fail the operation
+			fmt.Printf("Warning: failed to close response body: %v\n", closeErr)
+		}
+	}()
 
 	// Check for authentication errors
 	if resp.StatusCode == 401 {

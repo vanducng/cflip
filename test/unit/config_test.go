@@ -107,7 +107,11 @@ func TestConfigManager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if removeErr := os.RemoveAll(tmpDir); removeErr != nil {
+			t.Logf("Warning: failed to remove temporary directory: %v", removeErr)
+		}
+	}()
 
 	manager := config.NewManager()
 

@@ -38,7 +38,9 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Create tabwriter for nice formatting
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "PROVIDER\tNAME\tDESCRIPTION\tMODELS")
+	if _, err := fmt.Fprintln(w, "PROVIDER\tNAME\tDESCRIPTION\tMODELS"); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
 
 	// List all providers
 	for _, provider := range registry.List() {
@@ -51,16 +53,20 @@ func runList(cmd *cobra.Command, args []string) error {
 			indicator = "*"
 		}
 
-		fmt.Fprintf(w, "%s %s\t%s\t%s\t%s\n",
+		if _, err := fmt.Fprintf(w, "%s %s\t%s\t%s\t%s\n",
 			indicator,
 			provider.Name(),
 			provider.DisplayName(),
 			provider.Description(),
 			modelList,
-		)
+		); err != nil {
+			return fmt.Errorf("failed to write provider row: %w", err)
+		}
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush output: %w", err)
+	}
 
 	if currentProvider != "" {
 		fmt.Printf("\n* Currently active provider\n")

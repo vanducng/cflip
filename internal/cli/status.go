@@ -55,32 +55,48 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if !quiet {
 		// Create tabwriter for nice formatting
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "CONFIGURATION\tVALUE")
+		if _, err := fmt.Fprintln(w, "CONFIGURATION\tVALUE"); err != nil {
+			return fmt.Errorf("failed to write header: %w", err)
+		}
 
 		// Base URL
 		if baseURL, exists := settings.Env["ANTHROPIC_BASE_URL"]; exists {
-			fmt.Fprintf(w, "Base URL\t%s\n", baseURL)
+			if _, err := fmt.Fprintf(w, "Base URL\t%s\n", baseURL); err != nil {
+				return fmt.Errorf("failed to write base URL: %w", err)
+			}
 		} else {
-			fmt.Fprintln(w, "Base URL\thttps://api.anthropic.com (default)")
+			if _, err := fmt.Fprintln(w, "Base URL\thttps://api.anthropic.com (default)"); err != nil {
+				return fmt.Errorf("failed to write default base URL: %w", err)
+			}
 		}
 
 		// Models
 		if haiku, exists := settings.Env["ANTHROPIC_DEFAULT_HAIKU_MODEL"]; exists {
-			fmt.Fprintf(w, "Haiku Model\t%s\n", haiku)
+			if _, err := fmt.Fprintf(w, "Haiku Model\t%s\n", haiku); err != nil {
+				return fmt.Errorf("failed to write haiku model: %w", err)
+			}
 		}
 		if sonnet, exists := settings.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"]; exists {
-			fmt.Fprintf(w, "Sonnet Model\t%s\n", sonnet)
+			if _, err := fmt.Fprintf(w, "Sonnet Model\t%s\n", sonnet); err != nil {
+				return fmt.Errorf("failed to write sonnet model: %w", err)
+			}
 		}
 		if opus, exists := settings.Env["ANTHROPIC_DEFAULT_OPUS_MODEL"]; exists {
-			fmt.Fprintf(w, "Opus Model\t%s\n", opus)
+			if _, err := fmt.Fprintf(w, "Opus Model\t%s\n", opus); err != nil {
+				return fmt.Errorf("failed to write opus model: %w", err)
+			}
 		}
 
 		// API Timeout
 		if timeout, exists := settings.Env["API_TIMEOUT_MS"]; exists {
-			fmt.Fprintf(w, "API Timeout\t%s ms\n", timeout)
+			if _, err := fmt.Fprintf(w, "API Timeout\t%s ms\n", timeout); err != nil {
+				return fmt.Errorf("failed to write API timeout: %w", err)
+			}
 		}
 
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return fmt.Errorf("failed to flush output: %w", err)
+		}
 
 		// Check if API key is set
 		if _, exists := settings.Env["ANTHROPIC_AUTH_TOKEN"]; exists {

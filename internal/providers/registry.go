@@ -18,8 +18,12 @@ func NewRegistry() Registry {
 	}
 
 	// Register default providers
-	r.Register(NewAnthropicProvider())
-	r.Register(NewGLMProvider())
+	if err := r.Register(NewAnthropicProvider()); err != nil {
+		panic(fmt.Sprintf("failed to register anthropic provider: %v", err))
+	}
+	if err := r.Register(NewGLMProvider()); err != nil {
+		panic(fmt.Sprintf("failed to register GLM provider: %v", err))
+	}
 
 	return r
 }

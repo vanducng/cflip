@@ -57,7 +57,7 @@ func (p *Provider) Validate() error {
 	if p.BaseURL == "" {
 		return &ValidationError{Field: "baseUrl", Message: "base URL cannot be empty"}
 	}
-	if p.Models == nil || len(p.Models) == 0 {
+	if len(p.Models) == 0 {
 		return &ValidationError{Field: "models", Message: "at least one model must be specified"}
 	}
 	// Check for required models

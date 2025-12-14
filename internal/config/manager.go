@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,12 @@ func (m *Manager) LoadSettings() (*ClaudeSettings, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open settings file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log error but don't fail the operation
+			fmt.Fprintf(os.Stderr, "Warning: failed to close settings file: %v\n", err)
+		}
+	}()
 
 	// Decode JSON
 	var settings ClaudeSettings
@@ -58,13 +64,17 @@ func (m *Manager) LoadSettings() (*ClaudeSettings, error) {
 // SaveSettings writes Claude settings to file
 func (m *Manager) SaveSettings(settings *ClaudeSettings) error {
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(m.config.SettingsPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(m.config.SettingsPath), 0750); err != nil {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
 	// Create temporary file
 	tempFile := m.config.SettingsPath + ".tmp"
-	file, err := os.Create(tempFile)
+	// Validate temp file path is within expected directory
+	if !filepath.IsAbs(tempFile) || !strings.HasPrefix(filepath.Clean(tempFile), filepath.Clean(filepath.Dir(m.config.SettingsPath))) {
+		return fmt.Errorf("invalid temp file path: %s", tempFile)
+	}
+	file, err := os.Create(tempFile) // #nosec G304 - path validated above
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -73,20 +83,28 @@ func (m *Manager) SaveSettings(settings *ClaudeSettings) error {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(settings); err != nil {
-		file.Close()
-		os.Remove(tempFile)
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close temp file after encode error: %v\n", closeErr)
+		}
+		if removeErr := os.Remove(tempFile); removeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to remove temp file after encode error: %v\n", removeErr)
+		}
 		return fmt.Errorf("failed to encode settings: %w", err)
 	}
 
 	// Close file
 	if err := file.Close(); err != nil {
-		os.Remove(tempFile)
+		if removeErr := os.Remove(tempFile); removeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to remove temp file after close error: %v\n", removeErr)
+		}
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
 	// Rename temp file to actual file (atomic operation)
 	if err := os.Rename(tempFile, m.config.SettingsPath); err != nil {
-		os.Remove(tempFile)
+		if removeErr := os.Remove(tempFile); removeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to remove temp file after rename error: %v\n", removeErr)
+		}
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 
@@ -119,7 +137,7 @@ func (m *Manager) GetCurrentProvider() (string, error) {
 // CreateBackup creates a backup of the current settings
 func (m *Manager) CreateBackup() (*BackupInfo, error) {
 	// Ensure backup directory exists
-	if err := os.MkdirAll(m.config.BackupDir, 0755); err != nil {
+	if err := os.MkdirAll(m.config.BackupDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
@@ -181,7 +199,7 @@ func (m *Manager) ListBackups() ([]*BackupInfo, error) {
 
 	// Process each backup file
 	for _, entry := range entries {
-		if entry.IsDir() || !filepath.HasPrefix(entry.Name(), "backup-") {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "backup-") {
 			continue
 		}
 
@@ -237,24 +255,52 @@ func (m *Manager) cleanOldBackups() {
 	// Sort backups by timestamp (oldest first)
 	// For now, just remove the oldest files
 	for i := 0; i < len(backups)-m.config.MaxBackups; i++ {
-		os.Remove(backups[i].Path)
+		if err := os.Remove(backups[i].Path); err != nil {
+			// Log error but continue cleaning up other backups
+			fmt.Fprintf(os.Stderr, "Warning: failed to remove old backup %s: %v\n", backups[i].Path, err)
+		}
 	}
 }
 
 // copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
+	// Validate paths
+	if !filepath.IsAbs(src) {
+		return fmt.Errorf("source path must be absolute: %s", src)
 	}
-	defer source.Close()
+	if !filepath.IsAbs(dst) {
+		return fmt.Errorf("destination path must be absolute: %s", dst)
+	}
 
-	destination, err := os.Create(dst)
+	source, err := os.Open(src) // #nosec G304 - path validated above
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() {
+		if closeErr := source.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close source file %s: %v\n", src, closeErr)
+		}
+	}()
+
+	destination, err := os.Create(dst) // #nosec G304 - path validated above
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := destination.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close destination file %s: %v\n", dst, closeErr)
+		}
+	}()
 
 	_, err = io.Copy(destination, source)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Sync the file to ensure data is written to disk
+	if err := destination.Sync(); err != nil {
+		return fmt.Errorf("failed to sync destination file: %w", err)
+	}
+
+	return nil
 }

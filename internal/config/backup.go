@@ -84,7 +84,6 @@ func (bm *BackupManager) PruneBackups(olderThan time.Duration) error {
 	}
 
 	cutoff := time.Now().Add(-olderThan)
-	var deleted []string
 
 	for _, backup := range backups {
 		// Parse timestamp from backup ID
@@ -94,8 +93,9 @@ func (bm *BackupManager) PruneBackups(olderThan time.Duration) error {
 		}
 
 		if timestamp.Before(cutoff) {
-			if err := bm.DeleteBackup(backup.ID); err == nil {
-				deleted = append(deleted, backup.ID)
+			if err := bm.DeleteBackup(backup.ID); err != nil {
+				// Log error but continue with other backups
+				fmt.Printf("Warning: failed to delete backup %s: %v\n", backup.ID, err)
 			}
 		}
 	}

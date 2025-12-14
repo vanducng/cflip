@@ -109,20 +109,26 @@ func runBackupList(cmd *cobra.Command, args []string) error {
 
 	// Create tabwriter for nice formatting
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTIMESTAMP\tPROVIDER\tSIZE")
+	if _, err := fmt.Fprintln(w, "ID\tTIMESTAMP\tPROVIDER\tSIZE"); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
 
 	for _, backup := range backups {
 		// Parse timestamp for better display
 		timestamp, _ := time.Parse("20060102-150405", backup.Timestamp)
-		fmt.Fprintf(w, "%s\t%s\t%s\t%d bytes\n",
+		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d bytes\n",
 			backup.ID,
 			timestamp.Format("2006-01-02 15:04:05"),
 			backup.Provider,
 			backup.Size,
-		)
+		); err != nil {
+			return fmt.Errorf("failed to write backup row: %w", err)
+		}
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush output: %w", err)
+	}
 
 	return nil
 }
@@ -223,19 +229,24 @@ func runBackupPrune(cmd *cobra.Command, args []string) error {
 	duration, err := time.ParseDuration(backupOlderThan)
 	if err != nil {
 		// Try common formats
-		if strings.HasSuffix(backupOlderThan, "d") {
-			days := strings.TrimSuffix(backupOlderThan, "d")
-			if daysInt, err := strconv.Atoi(days); err == nil {
+		var suffix string
+		var value string
+		if idx := strings.LastIndexAny(backupOlderThan, "dhm"); idx != -1 {
+			suffix = backupOlderThan[idx:]
+			value = backupOlderThan[:idx]
+		}
+
+		switch suffix {
+		case "d":
+			if daysInt, err := strconv.Atoi(value); err == nil {
 				duration = time.Duration(daysInt) * 24 * time.Hour
 			}
-		} else if strings.HasSuffix(backupOlderThan, "h") {
-			hours := strings.TrimSuffix(backupOlderThan, "h")
-			if hoursInt, err := strconv.Atoi(hours); err == nil {
+		case "h":
+			if hoursInt, err := strconv.Atoi(value); err == nil {
 				duration = time.Duration(hoursInt) * time.Hour
 			}
-		} else if strings.HasSuffix(backupOlderThan, "m") {
-			minutes := strings.TrimSuffix(backupOlderThan, "m")
-			if minutesInt, err := strconv.Atoi(minutes); err == nil {
+		case "m":
+			if minutesInt, err := strconv.Atoi(value); err == nil {
 				duration = time.Duration(minutesInt) * time.Minute
 			}
 		}

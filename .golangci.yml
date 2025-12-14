@@ -72,14 +72,3 @@ issues:
     - text: "shadow: declaration of \"err\""
       linters:
         - govet
-
-output:
-  uniq-by-line: false
-
-run:
-  timeout: 5m
-  modules-download-mode: readonly
-  skip-dirs:
-    - (^|/)vendor/
-    - (^|/)test/
-    - (^|/)docs/
