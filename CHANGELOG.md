@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/vanducng/cflip/compare/v1.3.0...v1.3.1) (2025-12-14)
+
+
+### Bug Fixes
+
+* **ci:** configure Homebrew tap token for formula publishing ([622ccaa](https://github.com/vanducng/cflip/commit/622ccaa2ff231ff6f2092f2d1e872cce5884f4a4))
+
 # [1.3.0](https://github.com/vanducng/cflip/compare/v1.2.0...v1.3.0) (2025-12-14)
 
 
