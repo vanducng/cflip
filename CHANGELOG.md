@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/vanducng/cflip/compare/v1.1.1...v1.1.2) (2025-12-14)
+
+
+### Bug Fixes
+
+* **ci:** resolve cache conflicts and codecov warnings ([53526ab](https://github.com/vanducng/cflip/commit/53526abaf5aaa0e8b30520c75282837a659f57d9))
+
 ## [1.1.1](https://github.com/vanducng/cflip/compare/v1.1.0...v1.1.1) (2025-12-14)
 
 
