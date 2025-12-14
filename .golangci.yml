@@ -4,13 +4,9 @@ run:
 
 linters-settings:
   govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0
+    shadow: true
   gocyclo:
     min-complexity: 15
-  maligned:
-    suggest-new: true
   dupl:
     threshold: 100
   goconst:
@@ -52,14 +48,12 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
     - gomnd
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
     - nakedret

@@ -75,7 +75,12 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Build
-      run: go build -v ./...
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          go build -v -o cflip.exe ./cmd/cflip
+        else
+          go build -v -o cflip ./cmd/cflip
+        fi
 
     - name: Test build artifacts
       run: |
