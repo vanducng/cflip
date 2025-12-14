@@ -1,0 +1,42 @@
+{
+  "name": "cflip",
+  "version": "1.0.0",
+  "description": "Claude Provider Switcher - Switch between Claude Code providers",
+  "main": "cmd/cflip/main.go",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vanducng/cflip.git"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "glm",
+    "z-ai",
+    "cli",
+    "provider",
+    "switcher"
+  ],
+  "author": "Van Duc Nguyen <vanduc.ng@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6"
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/github",
+      [
+        "@semantic-release/git",
+        {
+          "assets": ["CHANGELOG.md"],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ]
+    ]
+  }
+}

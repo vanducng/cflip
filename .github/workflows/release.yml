@@ -2,12 +2,9 @@ name: GoReleaser
 
 on:
   push:
-    # run only against tags
+    # run only against tags created by semantic-release
     tags:
       - 'v*'
-  pull_request:
-    # run tests against PRs, but not releases
-    types: [opened, synchronize]
 
 permissions:
   contents: write
