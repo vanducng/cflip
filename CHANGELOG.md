@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/vanducng/cflip/compare/v1.6.8...v1.7.0) (2025-12-15)
+
+
+### Features
+
+* comprehensive settings management with snapshots ([5489b0f](https://github.com/vanducng/cflip/commit/5489b0f28f0dbef6169ee3c75b418f4d5c54018e))
+
 ## [1.6.8](https://github.com/vanducng/cflip/compare/v1.6.7...v1.6.8) (2025-12-15)
 
 
