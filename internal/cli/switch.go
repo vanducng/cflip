@@ -295,8 +295,12 @@ func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
 	provider := cfg.Providers[anthropicProvider]
 
 	// Optionally configure API key for Anthropic
-	if !quiet && provider.Token == "" {
-		fmt.Printf("\nConfigure API key for Anthropic? (optional, Y/n): ")
+	if !quiet {
+		if provider.Token == "" {
+			fmt.Printf("\nConfigure API key for Anthropic? (optional, Y/n): ")
+		} else {
+			fmt.Printf("\nUpdate API key for Anthropic? (current key configured, Y/n): ")
+		}
 		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(strings.ToLower(input))
