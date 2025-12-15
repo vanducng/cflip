@@ -12,8 +12,46 @@ import (
 	"golang.org/x/term"
 )
 
-// onboardV2Cmd represents the new onboard command with improved configuration
-var onboardV2Cmd = &cobra.Command{
+// getLegacyAPIKey retrieves API key from legacy settings
+func getLegacyAPIKey() string {
+	legacyPath := config.GetLegacySettingsPath()
+	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
+		return ""
+	}
+
+	// Try to read legacy settings
+	legacyManager := config.NewManager()
+	settings, err := legacyManager.LoadSettings()
+	if err != nil {
+		return ""
+	}
+
+	return settings.Env["ANTHROPIC_AUTH_TOKEN"]
+}
+
+// validateAPIKeyFormat validates API key format for different providers
+func validateAPIKeyFormat(providerName, apiKey string) error {
+	switch providerName {
+	case "anthropic":
+		if !strings.HasPrefix(apiKey, "sk-ant-") {
+			return fmt.Errorf("Anthropic API keys usually start with 'sk-ant-'")
+		}
+		if len(apiKey) < 50 {
+			return fmt.Errorf("API key appears to be too short")
+		}
+	case "glm":
+		if !strings.HasPrefix(apiKey, "zai-") {
+			return fmt.Errorf("GLM API keys usually start with 'zai-'")
+		}
+		if len(apiKey) < 40 {
+			return fmt.Errorf("API key appears to be too short")
+		}
+	}
+	return nil
+}
+
+// onboardCmd represents the onboard command
+var onboardCmd = &cobra.Command{
 	Use:   "onboard",
 	Short: "Interactive setup for CFLIP configuration",
 	Long: `Interactive setup wizard that helps you configure CFLIP for the first time.
@@ -24,14 +62,14 @@ It will guide you through:
 4. Setting up backup preferences
 
 This command is typically run once after installing CFLIP.`,
-	RunE: runOnboardV2,
+	RunE: runOnboard,
 }
 
-func newOnboardV2Cmd() *cobra.Command {
-	return onboardV2Cmd
+func newOnboardCmd() *cobra.Command {
+	return onboardCmd
 }
 
-func runOnboardV2(cmd *cobra.Command, args []string) error {
+func runOnboard(cmd *cobra.Command, args []string) error {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 
@@ -46,7 +84,7 @@ func runOnboardV2(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check if already configured
-	if isAlreadyConfiguredV2(cfg) && !quiet {
+	if isAlreadyConfigured(cfg) && !quiet {
 		if !promptReconfigure() {
 			fmt.Println("Onboarding cancelled. Your configuration remains unchanged.")
 			return nil
@@ -54,7 +92,7 @@ func runOnboardV2(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 1: Choose provider
-	providerName, err := chooseProviderV2(cfg, verbose)
+	providerName, err := chooseProvider(cfg, verbose)
 	if err != nil {
 		return err
 	}
@@ -62,23 +100,23 @@ func runOnboardV2(cmd *cobra.Command, args []string) error {
 	// Step 2: Configure provider
 	provider := cfg.Providers[providerName]
 	if provider.IsAPIKeyRequired() {
-		if err := configureAPIKeyProviderV2(&provider, verbose, quiet); err != nil {
+		if err := configureAPIKeyProvider(&provider, verbose, quiet); err != nil {
 			return err
 		}
 	} else {
-		configureSubscriptionProviderV2(&provider, verbose, quiet)
+		configureSubscriptionProvider(&provider, verbose, quiet)
 	}
 
 	// Update provider in config
 	cfg.Providers[providerName] = provider
 
 	// Step 3: Configure active models
-	if err := configureActiveModelsV2(tomlManager, cfg, providerName, verbose); err != nil {
+	if err := configureActiveModels(tomlManager, cfg, providerName, verbose); err != nil {
 		return err
 	}
 
 	// Step 4: Configure settings
-	if err := configureSettingsV2(tomlManager, &cfg.Settings, verbose); err != nil {
+	if err := configureSettings(tomlManager, &cfg.Settings, verbose); err != nil {
 		return err
 	}
 
@@ -95,14 +133,14 @@ func runOnboardV2(cmd *cobra.Command, args []string) error {
 	if !quiet {
 		fmt.Printf("\n✓ Configuration saved successfully!\n")
 		if promptTestConnection(&provider) {
-			if err := testProviderConnectionV2(&provider); err != nil {
+			if err := testProviderConnection(&provider); err != nil {
 				fmt.Printf("⚠ Warning: Connection test failed: %v\n", err)
 				fmt.Printf("  You may need to check your API key or network connection.\n")
 			} else {
 				fmt.Printf("✓ Connection test successful!\n")
 			}
 		}
-		printNextStepsV2(&provider)
+		printNextSteps(&provider)
 	}
 
 	return nil
@@ -121,7 +159,7 @@ Claude provider. Let's get started!
 `)
 }
 
-func isAlreadyConfiguredV2(cfg *config.CFLIPConfig) bool {
+func isAlreadyConfigured(cfg *config.CFLIPConfig) bool {
 	// Check if any provider has an API key configured
 	for _, provider := range cfg.Providers {
 		if provider.IsAPIKeyRequired() && provider.HasAPIKey() {
@@ -139,7 +177,7 @@ func promptReconfigure() bool {
 	return input == "y" || input == "yes"
 }
 
-func chooseProviderV2(cfg *config.CFLIPConfig, verbose bool) (string, error) {
+func chooseProvider(cfg *config.CFLIPConfig, verbose bool) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Printf("\nChoose your Claude provider:\n")
@@ -183,7 +221,7 @@ func chooseProviderV2(cfg *config.CFLIPConfig, verbose bool) (string, error) {
 	}
 }
 
-func configureAPIKeyProviderV2(provider *config.ProviderInfo, verbose, quiet bool) error {
+func configureAPIKeyProvider(provider *config.ProviderInfo, verbose, quiet bool) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Printf("\nAPI Key Configuration for %s\n", provider.DisplayName)
@@ -247,7 +285,7 @@ func configureAPIKeyProviderV2(provider *config.ProviderInfo, verbose, quiet boo
 	return nil
 }
 
-func configureSubscriptionProviderV2(provider *config.ProviderInfo, verbose, quiet bool) {
+func configureSubscriptionProvider(provider *config.ProviderInfo, verbose, quiet bool) {
 	fmt.Printf("\nSubscription Authentication for %s\n", provider.DisplayName)
 	fmt.Printf("-------------------------------------------\n")
 	fmt.Printf("This provider uses your Claude subscription for authentication.\n\n")
@@ -267,7 +305,7 @@ func configureSubscriptionProviderV2(provider *config.ProviderInfo, verbose, qui
 	}
 }
 
-func configureActiveModelsV2(tomlManager *config.TOMLManagerV2, cfg *config.CFLIPConfig, providerName string, verbose bool) error {
+func configureActiveModels(tomlManager *config.TOMLManagerV2, cfg *config.CFLIPConfig, providerName string, verbose bool) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	provider := cfg.Providers[providerName]
@@ -342,7 +380,7 @@ func configureActiveModelsV2(tomlManager *config.TOMLManagerV2, cfg *config.CFLI
 	return nil
 }
 
-func configureSettingsV2(tomlManager *config.TOMLManagerV2, settings *config.SettingsConfig, verbose bool) error {
+func configureSettings(tomlManager *config.TOMLManagerV2, settings *config.SettingsConfig, verbose bool) error {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("\nSettings Configuration\n")
 	fmt.Printf("----------------------\n")
@@ -406,7 +444,7 @@ func promptTestConnection(provider *config.ProviderInfo) bool {
 	return input == "" || input == "y" || input == "yes"
 }
 
-func testProviderConnectionV2(provider *config.ProviderInfo) error {
+func testProviderConnection(provider *config.ProviderInfo) error {
 	// TODO: Implement connection test
 	// For now, just validate the API key format
 	if !provider.HasAPIKey() {
@@ -427,23 +465,7 @@ func testProviderConnectionV2(provider *config.ProviderInfo) error {
 	return nil
 }
 
-func getLegacyAPIKey() string {
-	legacyPath := config.GetLegacySettingsPath()
-	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
-		return ""
-	}
-
-	// Try to read legacy settings
-	legacyManager := config.NewManager()
-	settings, err := legacyManager.LoadSettings()
-	if err != nil {
-		return ""
-	}
-
-	return settings.Env["ANTHROPIC_AUTH_TOKEN"]
-}
-
-func printNextStepsV2(provider *config.ProviderInfo) {
+func printNextSteps(provider *config.ProviderInfo) {
 	fmt.Printf(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                        Next Steps                            ║
