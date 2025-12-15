@@ -108,16 +108,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Cache Go modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-build-${{ hashFiles('**/go.sum', '**/go.mod') }}
-          restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
-
       - name: Download dependencies
         run: go mod download
 
