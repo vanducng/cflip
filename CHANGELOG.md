@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/vanducng/cflip/compare/v1.6.5...v1.6.6) (2025-12-15)
+
+
+### Bug Fixes
+
+* add missing version variable for goreleaser ldflags ([9a83715](https://github.com/vanducng/cflip/commit/9a837159b9378cb5e71046655756555a0bee8fd0))
+
 ## [1.6.5](https://github.com/vanducng/cflip/compare/v1.6.4...v1.6.5) (2025-12-15)
 
 
