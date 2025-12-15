@@ -15,44 +15,25 @@ make install
 
 ### Basic Usage
 
-#### List Available Providers
-```bash
-cflip list
-```
-
-Output:
-```
-PROVIDER     NAME         DESCRIPTION                                         MODELS
-  anthropic  Anthropic    Official Anthropic Claude API provider              claude-3-5-haiku-20241022/claude-3-5-sonnet-20241022/claude-3-opus-20240229
-* glm        GLM by z.ai  GLM models from z.ai with Anthropic-compatible API  glm-4.5-air/glm-4.6/glm-4.6
-```
-
-#### Check Current Status
-```bash
-cflip status
-```
-
-Output:
-```
-Current provider: GLM by z.ai
-CONFIGURATION  VALUE
-Base URL       https://api.z.ai/api/anthropic
-Haiku Model    glm-4.5-air
-Sonnet Model   glm-4.6
-Opus Model     glm-4.6
-API Timeout    3000000 ms
-
-API Key: Configured ✓
-```
-
 #### Switch Providers
 ```bash
 # Interactive mode - prompts for selection
 cflip switch
 
-# Direct switch
+# Direct switch to Anthropic (official provider)
 cflip switch anthropic
+
+# Switch to GLM (z.ai provider)
 cflip switch glm
+
+# Switch to a custom provider
+cflip switch my-provider
+```
+
+#### Check Current Status
+```bash
+# Check configuration location (current version only supports switch command)
+cflip switch --help
 ```
 
 ## Command Reference
@@ -61,12 +42,21 @@ cflip switch glm
 Switch between Claude providers.
 
 ```bash
-cflip switch [provider]
+cflip switch [provider] [flags]
 ```
+
+**Description:**
+Switch the active Claude provider. This will update your `~/.cflip/config.toml` file and generate the appropriate Claude settings for the specified provider.
+
+**Available providers:**
+- `anthropic` - Official Anthropic Claude API (optional API key, uses default endpoint)
+- `glm` - GLM models by z.ai (requires API key and base URL)
+- `custom` - Any custom provider (requires API key and base URL)
 
 **Options:**
 - `--verbose, -v`: Show detailed output
 - `--quiet, -q`: Suppress output except errors
+- `--help, -h`: Show help for the command
 
 **Examples:**
 ```bash
@@ -76,210 +66,184 @@ cflip switch
 # Direct switch to Anthropic
 cflip switch anthropic
 
-# Verbose output
+# Switch to GLM with verbose output
 cflip switch glm --verbose
+
+# Quiet mode
+cflip switch anthropic --quiet
 ```
 
-### list
-List all available providers.
+## Provider Configuration
+
+### Anthropic (Official)
+The Anthropic provider is special - it's the default/owner provider:
 
 ```bash
-cflip list
+$ cflip switch anthropic
+Configure API key for Anthropic? (optional, Y/n): Y
+Enter Anthropic API key (optional): [hidden]
+
+✓ Successfully switched to anthropic
+
+Configuration: Using Anthropic with default endpoint
+Authentication: API Key configured
 ```
 
-**Output columns:**
-- `*`: Indicates currently active provider
-- `PROVIDER`: Provider identifier
-- `NAME`: Display name
-- `DESCRIPTION`: Brief description
-- `MODELS`: Available models (haiku/sonnet/opus)
+**Features:**
+- Uses Claude Code's default endpoint (no `ANTHROPIC_BASE_URL` set)
+- Optional API key (can use Claude Code subscription)
+- No model mappings needed (uses defaults)
 
-### status
-Show current provider status and configuration.
+### External Providers (GLM, Custom)
 
+#### First-time Setup
 ```bash
-cflip status
+$ cflip switch glm
+
+Configuring glm provider
+? Enter glm API token: [hidden]
+? Enter glm base URL: https://api.z.ai/api/anthropic
+
+Configure model mappings? (Y/n): Y
+? Enter model for haiku category (optional): glm-4.6-air
+? Enter model for sonnet category (optional): glm-4.6
+? Enter model for opus category (optional): [leave empty]
+
+✓ Successfully switched to glm
+
+Configuration:
+  Base URL: https://api.z.ai/api/anthropic
+  Model Mappings:
+    haiku: glm-4.6-air
+    sonnet: glm-4.6
+
+Authentication: API Key
 ```
 
-**Output includes:**
-- Current provider name
-- Base URL and models
-- API key status
-- Settings file location
-- Available features (for GLM)
+**Features:**
+- Required: API token and base URL
+- Optional: Model mappings for haiku/sonnet/opus categories
+- Updates all 5 environment variables in settings.json
 
-### backup
-Manage configuration backups.
+## Configuration Files
 
-```bash
-cflip backup [subcommand]
+### CFLIP Configuration (`~/.cflip/config.toml`)
+```toml
+provider = "glm"
+
+[providers]
+[providers.anthropic]
+token = "sk-ant-api..."  # Optional API key
+
+[providers.glm]
+token = "your-glm-token"
+base_url = "https://api.z.ai/api/anthropic"
+
+[providers.glm.model_map]
+haiku = "glm-4.6-air"
+sonnet = "glm-4.6"
 ```
 
-**Subcommands:**
+### Claude Settings (`~/.claude/settings.json`)
+CFLIP automatically manages this file:
 
-#### backup create
-Create a backup of current settings.
-```bash
-cflip backup create [--description "text"]
+**For Anthropic:**
+```json
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-ant-api..."
+  }
+}
 ```
 
-**Example:**
-```bash
-# Simple backup
-cflip backup create
-
-# Backup with description
-cflip backup create -d "Before switching to GLM"
+**For External Providers:**
+```json
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "your-token",
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6-air",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6"
+  }
+}
 ```
-
-#### backup list
-List all available backups.
-```bash
-cflip backup list
-```
-
-**Output:**
-```
-ID                      TIMESTAMP           PROVIDER  SIZE
-backup-20250114-200000  2025-01-14 20:00:00  anthropic  245 bytes
-backup-20250114-201500  2025-01-14 20:15:00  glm       238 bytes
-```
-
-#### backup restore
-Restore settings from a backup.
-```bash
-cflip backup restore <backup-id>
-```
-
-**Example:**
-```bash
-cflip backup restore backup-20250114-200000
-```
-
-#### backup delete
-Delete a specific backup.
-```bash
-cflip backup delete <backup-id>
-```
-
-#### backup prune
-Delete old backups.
-```bash
-cflip backup prune [--older-than duration]
-```
-
-**Duration formats:**
-- `7d` - 7 days (default)
-- `24h` - 24 hours
-- `30m` - 30 minutes
-
-## Global Options
-
-All commands support these global options:
-
-- `--verbose, -v`: Show detailed output
-- `--quiet, -q`: Suppress output except errors
-- `--help, -h`: Show help for the command
 
 ## Provider Setup
 
 ### Anthropic
-1. Get API key from [Anthropic Console](https://console.anthropic.com/)
-2. Ensure you have credits or active subscription
-3. Run: `cflip switch anthropic`
-4. Enter API key when prompted
+1. Optional: Get API key from [Anthropic Console](https://console.anthropic.com/)
+2. Run: `cflip switch anthropic`
+3. Optionally enter API key (can use Claude Code subscription)
 
 ### GLM by z.ai
 1. Visit [Z.AI Platform](https://platform.z.ai) and register
 2. Subscribe to GLM Coding Plan
 3. Generate API key from dashboard
 4. Run: `cflip switch glm`
-5. Enter API key when prompted
+5. Enter API key: `[your-token]`
+6. Enter base URL: `https://api.z.ai/api/anthropic`
 
-## Configuration File
-
-CFLIP manages the `~/.claude/settings.json` file:
-
-```json
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "your-api-key",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "API_TIMEOUT_MS": "3000000",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6"
-  }
-}
+### Custom Provider
+Any Anthropic-compatible API:
+```bash
+cflip switch my-custom-provider
+# Follow prompts to configure:
+# - API token
+# - Base URL
+# - Optional model mappings
 ```
 
-## Troubleshooting
+## Model Categories
 
-### API Key Not Accepted
-- Ensure API key is correct for the provider
-- Check subscription status (especially for GLM)
-- Verify key permissions
+External providers can map their models to Anthropic's categories:
 
-### Can't Determine Current Provider
-- Check if `~/.claude/settings.json` exists
-- Verify file has correct JSON format
-- Run `cflip status --verbose` for details
-
-### Backup Failed
-- Check permissions on `~/.claude/` directory
-- Ensure disk space is available
-- Run with `--verbose` for error details
-
-### Permission Denied
-- Ensure write permissions on `~/.claude/settings.json`
-- Check if Claude Code is running (may lock the file)
-- Try restarting with a new terminal
+- **haiku**: Fast, efficient models for quick tasks
+- **sonnet**: Advanced models for most tasks
+- **opus**: Most capable models for complex tasks
 
 ## Examples
 
-### Switching Workflow
+### Basic Provider Switching
 ```bash
-# Check current setup
-cflip status
-
-# Create backup before switching
-cflip backup create -d "Before GLM switch"
-
-# Switch to GLM
-cflip switch glm
-
-# Verify switch
-cflip status
-
-# List backups
-cflip backup list
-
-# Switch back if needed
+# Start with Anthropic
 cflip switch anthropic
 
-# Restore from backup
-cflip backup restore backup-20250114-200000
+# Switch to GLM for testing
+cflip switch glm
+
+# Switch back
+cflip switch anthropic
 ```
 
-### Automated Script
+### Custom Provider Setup
 ```bash
-#!/bin/bash
-# Switch provider and verify
+# Add a custom OpenAI-compatible provider
+cflip switch openai-compatible
+# ? Enter openai-compatible API token: sk-...
+# ? Enter openai-compatible base URL: https://api.openai.com/v1
+# ? Configure model mappings? Y
+# ? Enter model for haiku category: gpt-4o-mini
+# ? Enter model for sonnet category: gpt-4o
+```
 
-PROVIDER=$1
-if [ -z "$PROVIDER" ]; then
-    echo "Usage: $0 <provider>"
-    exit 1
-fi
+### Verbose Output
+```bash
+$ cflip switch glm --verbose
 
-# Create backup with timestamp
-cflip backup create -d "Auto-backup before $PROVIDER"
+✓ Successfully switched to glm
 
-# Switch provider
-cflip switch $PROVIDER
+Configuration:
+  Base URL: https://api.z.ai/api/anthropic
+  Model Mappings:
+    haiku: glm-4.6-air
+    sonnet: glm-4.6
 
-# Verify
-cflip status --quiet
+Authentication: API Key
+
+Configuration saved to: /Users/user/.cflip/config.toml
+Claude settings updated at: /Users/user/.claude/settings.json
 ```
 
 ## Integration with Claude Code
@@ -287,11 +251,28 @@ cflip status --quiet
 After switching providers:
 1. Close all Claude Code windows
 2. Start Claude Code in a new terminal
-3. Verify with `/status` command in Claude Code
+3. Claude Code will automatically use the new provider configuration
+
+## Troubleshooting
+
+### API Key Issues
+- Verify API key is correct for the provider
+- Check subscription status
+- Ensure token has necessary permissions
+
+### Configuration Not Applied
+- Check `~/.claude/settings.json` exists
+- Restart Claude Code after switching
+- Use `--verbose` flag for debugging
+
+### Custom Provider Not Working
+- Verify base URL is correct
+- Check API compatibility with Anthropic format
+- Test with curl or similar tool first
 
 ## Tips
 
-- Always create backups before switching
-- Use `cflip status --verbose` for debugging
-- Regular backup pruning: `cflip backup prune --older-than 30d`
-- Check provider setup requirements before switching
+- Use `--verbose` flag to see what files are being updated
+- Store sensitive tokens only in the config file (not in shell history)
+- Test with Anthropic first to ensure CFLIP is working
+- Always verify custom provider API compatibility

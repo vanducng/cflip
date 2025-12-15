@@ -12,6 +12,11 @@ import (
 	"golang.org/x/term"
 )
 
+const (
+	anthropicProvider = "anthropic"
+	yesResponse       = "yes"
+)
+
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
 	Use:   "switch [provider]",
@@ -66,7 +71,7 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 	}
 
 	// Configure provider if needed
-	if providerName != "anthropic" {
+	if providerName != anthropicProvider {
 		if err := configureExternalProvider(cfg, providerName, verbose, quiet); err != nil {
 			return err
 		}
@@ -106,11 +111,11 @@ func getProviderName(args []string, cfg *config.Config, verbose bool) (string, e
 
 func promptProviderSelection(cfg *config.Config) (string, error) {
 	// Always include anthropic as an option
-	providerNames := []string{"anthropic"}
+	providerNames := []string{anthropicProvider}
 
 	// Add configured external providers
 	for name := range cfg.Providers {
-		if name != "anthropic" {
+		if name != anthropicProvider {
 			providerNames = append(providerNames, name)
 		}
 	}
@@ -123,14 +128,14 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 		}
 
 		displayName := name
-		if name == "anthropic" {
+		if name == anthropicProvider {
 			displayName = "Anthropic (Official)"
 		}
 
 		provider := cfg.Providers[name]
 		fmt.Printf("  %d) %s%s", i+1, displayName, current)
 
-		if name != "anthropic" {
+		if name != anthropicProvider {
 			if provider.Token != "" {
 				fmt.Printf(" (configured)")
 			} else {
@@ -220,7 +225,7 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(strings.ToLower(input))
 
-	if input == "" || input == "y" || input == "yes" {
+	if input == "" || input == "y" || input == yesResponse {
 		if provider.ModelMap == nil {
 			provider.ModelMap = make(map[string]string)
 		}
@@ -242,7 +247,7 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 }
 
 func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
-	provider := cfg.Providers["anthropic"]
+	provider := cfg.Providers[anthropicProvider]
 
 	// Optionally configure API key for Anthropic
 	if !quiet && provider.Token == "" {
@@ -251,7 +256,7 @@ func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(strings.ToLower(input))
 
-		if input == "" || input == "y" || input == "yes" {
+		if input == "" || input == "y" || input == yesResponse {
 			fmt.Printf("Enter Anthropic API key (optional): ")
 			bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
 			if err != nil {
@@ -313,8 +318,8 @@ func generateClaudeSettings(cfg *config.Config) error {
 	}
 
 	// Configure based on provider
-	if cfg.Provider == "anthropic" {
-		provider := cfg.Providers["anthropic"]
+	if cfg.Provider == anthropicProvider {
+		provider := cfg.Providers[anthropicProvider]
 
 		// Only set API key if provided
 		if provider.Token != "" {
@@ -323,7 +328,6 @@ func generateClaudeSettings(cfg *config.Config) error {
 
 		// Do NOT set ANTHROPIC_BASE_URL - use Claude Code default
 		// Do NOT set model mappings - use defaults
-
 	} else {
 		// External provider
 		provider := cfg.Providers[cfg.Provider]
@@ -333,7 +337,7 @@ func generateClaudeSettings(cfg *config.Config) error {
 		env["ANTHROPIC_BASE_URL"] = provider.BaseURL
 
 		// Set model mappings if available
-		if provider.ModelMap != nil {
+		if len(provider.ModelMap) > 0 {
 			if haikuModel, exists := provider.ModelMap["haiku"]; exists {
 				env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = haikuModel
 			}
@@ -370,7 +374,7 @@ func generateClaudeSettings(cfg *config.Config) error {
 func formatEnvMap(env map[string]interface{}) string {
 	var lines []string
 	for k, v := range env {
-		lines = append(lines, fmt.Sprintf(`    "%s": "%s"`, k, v))
+		lines = append(lines, fmt.Sprintf(`    %q: %q`, k, v))
 	}
 	return strings.Join(lines, ",\n")
 }
@@ -378,9 +382,9 @@ func formatEnvMap(env map[string]interface{}) string {
 func displaySwitchSuccess(cfg *config.Config, providerName string, verbose bool) {
 	fmt.Printf("\n✓ Successfully switched to %s\n", providerName)
 
-	if providerName == "anthropic" {
+	if providerName == anthropicProvider {
 		fmt.Printf("\nConfiguration: Using Anthropic with default endpoint\n")
-		if cfg.Providers["anthropic"].Token != "" {
+		if cfg.Providers[anthropicProvider].Token != "" {
 			fmt.Printf("Authentication: API Key configured\n")
 		} else {
 			fmt.Printf("Authentication: No API key (will use Claude Code subscription)\n")
@@ -389,7 +393,7 @@ func displaySwitchSuccess(cfg *config.Config, providerName string, verbose bool)
 		provider := cfg.Providers[providerName]
 		fmt.Printf("\nConfiguration:\n")
 		fmt.Printf("  Base URL: %s\n", provider.BaseURL)
-		if provider.ModelMap != nil && len(provider.ModelMap) > 0 {
+		if len(provider.ModelMap) > 0 {
 			fmt.Printf("  Model Mappings:\n")
 			for category, model := range provider.ModelMap {
 				fmt.Printf("    %s: %s\n", category, model)
