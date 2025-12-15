@@ -14,7 +14,7 @@ var (
 )
 
 func main() {
-	if err := cli.Execute(cli.Version, commit, buildTime); err != nil {
+	if err := cli.Execute("", commit, buildTime); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

@@ -8,6 +8,7 @@ import (
 
 var (
 	// Build information injected at build time
+	version   = "dev"
 	Commit    = "unknown"
 	BuildTime = "unknown"
 )
@@ -21,13 +22,15 @@ Claude Code providers (Anthropic, GLM/z.ai, and future providers).
 
 It manages the ~/.claude/settings.json configuration file to toggle between
 different API endpoints and authentication methods.`,
-	Version: fmt.Sprintf("%s (commit: %s, built: %s)", Version, Commit, BuildTime),
+	Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, Commit, BuildTime),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-func Execute(version, commit, buildTime string) error {
-	// Set build information
-	Version = version
+func Execute(v, commit, buildTime string) error {
+	// Set build information (override version if provided)
+	if v != "" {
+		version = v
+	}
 	Commit = commit
 	BuildTime = buildTime
 
