@@ -190,6 +190,13 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 
 	provider := cfg.Providers[providerName]
 
+	// Show current configuration status
+	if !quiet {
+		if provider.Token != "" {
+			fmt.Printf("Using existing API token\n")
+		}
+	}
+
 	// Prompt for token if not configured
 	if provider.Token == "" {
 		fmt.Printf("Enter %s API token: ", providerName)
@@ -204,6 +211,11 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 			return fmt.Errorf("API token cannot be empty")
 		}
 		provider.Token = token
+	}
+
+	// Show base URL status
+	if !quiet && provider.BaseURL != "" {
+		fmt.Printf("Using existing base URL\n")
 	}
 
 	// Prompt for base URL if not configured
