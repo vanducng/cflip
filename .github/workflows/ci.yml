@@ -44,10 +44,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-v${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
+          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
-          fail-on-cache-miss: false
+            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
@@ -107,11 +106,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
+          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-lint-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-lint-
-            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
-          fail-on-cache-miss: false
+            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -143,12 +140,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
+          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-build-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-build-
-            ${{ runner.os }}-go-lint-
-            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
-          fail-on-cache-miss: false
+            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
@@ -240,12 +234,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
+          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-release-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-release-
-            ${{ runner.os }}-go-build-
-            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
-          fail-on-cache-miss: false
+            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
