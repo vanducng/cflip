@@ -118,17 +118,17 @@ func NewCFLIPConfig() *CFLIPConfig {
 				Description:   "Fast and efficient model for quick tasks",
 				MaxTokens:     200000,
 				ContextWindow: 200000,
-				Capabilities:  []string{"text", "code", "analysis"},
+				Capabilities:  []string{"text", "code", "analysis", "vision"},
 			},
 			"claude-3-5-sonnet-20241022": {
 				ID:            "claude-3-5-sonnet-20241022",
 				Name:          "Claude 3.5 Sonnet",
 				Provider:      "anthropic",
 				Category:      "sonnet",
-				Description:   "Balanced model for most tasks",
+				Description:   "Balanced model for most tasks with improved capabilities",
 				MaxTokens:     200000,
 				ContextWindow: 200000,
-				Capabilities:  []string{"text", "code", "analysis", "reasoning"},
+				Capabilities:  []string{"text", "code", "analysis", "reasoning", "vision"},
 			},
 			"claude-3-opus-20240229": {
 				ID:            "claude-3-opus-20240229",
@@ -138,7 +138,7 @@ func NewCFLIPConfig() *CFLIPConfig {
 				Description:   "Most capable model for complex tasks",
 				MaxTokens:     4096,
 				ContextWindow: 200000,
-				Capabilities:  []string{"text", "code", "analysis", "reasoning", "creative"},
+				Capabilities:  []string{"text", "code", "analysis", "reasoning", "creative", "vision"},
 			},
 
 			// GLM models
