@@ -3,6 +3,7 @@ name: Semantic Release
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,6 +13,8 @@ jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
+    # Only run if CI passed
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -31,16 +34,18 @@ jobs:
           npm install -g semantic-release@^23.0.0
 
       - name: Run Semantic Release
+        id: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
-        run: semantic-release
-
-      - name: Trigger GoReleaser on new tag
-        if: steps.release.outputs.version != ''
         run: |
-          echo "New release version: ${{ steps.release.outputs.version }}"
-          # This will trigger the GoReleaser workflow
+          semantic-release --branches main
+
+      - name: Trigger GoReleaser
+        if: steps.semantic-release.outputs.new_release_published == 'true'
+        run: |
+          echo "New release published: v${{ steps.semantic-release.outputs.new_release_version }}"
+          echo "This will automatically trigger GoReleaser workflow"
