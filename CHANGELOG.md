@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/vanducng/cflip/compare/v1.4.1...v1.5.0) (2025-12-15)
+
+
+### Features
+
+* update to latest 2025 model versions ([040b958](https://github.com/vanducng/cflip/commit/040b9580b0c4e19c95313f9819489b95d58ac99f))
+
 ## [1.4.1](https://github.com/vanducng/cflip/compare/v1.4.0...v1.4.1) (2025-12-15)
 
 
