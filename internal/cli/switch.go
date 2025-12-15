@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -130,8 +129,6 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 	return RunInteractiveSelection(cfg)
 }
 
-}
-
 // getProviderDisplayInfo returns the display name and status text for a provider
 func getProviderDisplayInfo(providerName string, provider config.ProviderConfig) (displayName, statusText string) {
 	if providerName == anthropicProvider {
@@ -156,16 +153,7 @@ func getProviderDisplayInfo(providerName string, provider config.ProviderConfig)
 }
 
 func configureExternalProvider(cfg *config.Config, providerName string, verbose, quiet bool) error {
-	if !quiet {
-		fmt.Printf("\nConfiguring %s provider\n", providerName)
-	}
-
 	provider := cfg.Providers[providerName]
-
-	// Show current configuration status
-	if !quiet {
-		showProviderStatus(provider)
-	}
 
 	// Configure token if needed
 	if err := configureToken(&provider, providerName); err != nil {
@@ -184,16 +172,6 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 
 	cfg.SetProviderConfig(providerName, provider)
 	return nil
-}
-
-// showProviderStatus displays the current provider configuration status
-func showProviderStatus(provider config.ProviderConfig) {
-	if provider.Token != "" {
-		fmt.Printf("Using existing API token\n")
-	}
-	if provider.BaseURL != "" {
-		fmt.Printf("Using existing base URL\n")
-	}
 }
 
 // configureToken prompts for and configures the API token
@@ -379,31 +357,7 @@ func generateClaudeSettings(cfg *config.Config, quiet bool) error {
 }
 
 func displaySwitchSuccess(cfg *config.Config, providerName string, verbose bool) {
-	fmt.Printf("\n✓ Successfully switched to %s\n", providerName)
+	displayName, _ := getProviderDisplayInfo(providerName, cfg.Providers[providerName])
 
-	if providerName == anthropicProvider {
-		fmt.Printf("\nConfiguration: Using Anthropic with default endpoint\n")
-		if cfg.Providers[anthropicProvider].Token != "" {
-			fmt.Printf("Authentication: API Key configured\n")
-		} else {
-			fmt.Printf("Authentication: No API key (will use Claude Code subscription)\n")
-		}
-	} else {
-		provider := cfg.Providers[providerName]
-		fmt.Printf("\nConfiguration:\n")
-		fmt.Printf("  Base URL: %s\n", provider.BaseURL)
-		if len(provider.ModelMap) > 0 {
-			fmt.Printf("  Model Mappings:\n")
-			for category, model := range provider.ModelMap {
-				fmt.Printf("    %s: %s\n", category, model)
-			}
-		}
-		fmt.Printf("\nAuthentication: API Key\n")
-	}
-
-	if verbose {
-		fmt.Printf("\nConfiguration saved to: %s\n", config.GetConfigPath())
-		homeDir, _ := os.UserHomeDir()
-		fmt.Printf("Claude settings updated at: %s\n", filepath.Join(homeDir, ".claude", "settings.json"))
-	}
+	fmt.Printf("✓ Switched to %s\n", displayName)
 }

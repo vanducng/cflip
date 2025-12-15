@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -12,9 +13,38 @@ import (
 
 var (
 	quitTextStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#9B9B9B")).
-		MarginTop(1)
+			Foreground(lipgloss.Color("#9B9B9B"))
+	selectedStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4"))
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Padding(0, 1)
+	indentString = "  "
 )
+
+// compactDelegate is a minimal item delegate for compact rendering
+type compactDelegate struct{}
+
+func (d compactDelegate) Height() int                               { return 1 }
+func (d compactDelegate) Spacing() int                              { return 0 }
+func (d compactDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+func (d compactDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(item)
+	if !ok {
+		return
+	}
+
+	cursor := indentString
+	text := i.title
+
+	if index == m.Index() {
+		cursor = "▶ "
+		text = selectedStyle.Render(i.title)
+	}
+	fmt.Fprintf(w, "%s%s", cursor, text)
+}
 
 // item represents a provider choice
 type item struct {
@@ -86,8 +116,8 @@ func initialModel(cfg *config.Config) model {
 	}
 
 	// Create the list
-	const defaultWidth = 50
-	const listHeight = 10
+	const defaultWidth = 40
+	const listHeight = 8
 
 	// Convert []item to []list.Item
 	listItems := make([]list.Item, len(items))
@@ -95,10 +125,11 @@ func initialModel(cfg *config.Config) model {
 		listItems[i] = it
 	}
 
-	l := list.New(listItems, list.NewDefaultDelegate(), defaultWidth, listHeight)
-	l.Title = "Select Provider"
+	l := list.New(listItems, compactDelegate{}, defaultWidth, listHeight)
+	l.Title = titleStyle.Render("Select Provider")
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
+	l.SetShowHelp(false)
 	l.DisableQuitKeybindings()
 
 	// Find current provider and set as selected
@@ -161,7 +192,7 @@ func (m model) View() string {
 }
 
 var docStyle = lipgloss.NewStyle().
-	Margin(1, 2)
+	Margin(0, 1)
 
 // RunInteractiveSelection runs the interactive provider selection
 func RunInteractiveSelection(cfg *config.Config) (string, error) {

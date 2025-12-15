@@ -1,4 +1,4 @@
-.PHONY: help build install test clean fmt lint vet deps release snapshot check-release
+.PHONY: help build build-local install test clean fmt lint vet deps release snapshot check-release
 
 # Variables
 BINARY_NAME=cflip
@@ -37,6 +37,10 @@ deps: ## Install dependencies
 build: ## Build the binary for current platform
 	@mkdir -p $(BUILD_DIR)
 	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
+
+build-local: ## Build the binary for local machine and install to ~/.local/bin
+	@mkdir -p $(HOME)/.local/bin
+	$(GOBUILD) $(LDFLAGS) -o $(HOME)/.local/bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 build-all: ## Build binaries for all platforms
 	@mkdir -p $(DIST_DIR)

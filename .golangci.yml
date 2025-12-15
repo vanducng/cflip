@@ -27,6 +27,7 @@ linters:
         - octalLiteral
         - whyNoLint
         - wrapperFunc
+        - hugeParam
       enabled-tags:
         - diagnostic
         - opinionated
