@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/vanducng/cflip/compare/v1.6.3...v1.6.4) (2025-12-15)
+
+
+### Bug Fixes
+
+* update version example in README to recent release ([db96038](https://github.com/vanducng/cflip/commit/db96038b962fae9258eb625bd5f3997753ca19f9))
+
 ## [1.6.3](https://github.com/vanducng/cflip/compare/v1.6.2...v1.6.3) (2025-12-15)
 
 
