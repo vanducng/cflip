@@ -8,7 +8,6 @@ import (
 
 var (
 	// Build information injected at build time
-	Version   = "dev"
 	Commit    = "unknown"
 	BuildTime = "unknown"
 )
