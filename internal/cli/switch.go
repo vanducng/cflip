@@ -17,6 +17,10 @@ const (
 	anthropicProvider  = "anthropic"
 	claudeCodeProvider = "claude-code"
 	anthropicName      = "Anthropic"
+	glmProvider        = "glm"
+	statusOAuth        = "OAuth"
+	statusAPI          = "API"
+	currentMarker      = " [CURRENT]"
 	yesResponse        = "yes"
 )
 
@@ -63,6 +67,14 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 	providerName, err := getProviderName(args, cfg, verbose)
 	if err != nil {
 		return err
+	}
+
+	// If no provider specified and in a terminal, use interactive mode
+	if providerName == "" && len(args) == 0 && isTerminal() {
+		if provider, err := RunInteractiveSelection(cfg); err == nil && provider != "" {
+			providerName = provider
+		}
+		// Fall through to text selection if interactive fails
 	}
 
 	// Check if already using this provider
@@ -113,6 +125,17 @@ func getProviderName(args []string, cfg *config.Config, verbose bool) (string, e
 }
 
 func promptProviderSelection(cfg *config.Config) (string, error) {
+	// Try interactive selection first
+	if provider, err := RunInteractiveSelection(cfg); err == nil && provider != "" {
+		return provider, nil
+	}
+
+	// Fall back to simple text selection if interactive fails
+	return promptProviderSelectionText(cfg)
+}
+
+// promptProviderSelectionText provides the original text-based selection
+func promptProviderSelectionText(cfg *config.Config) (string, error) {
 	// Always include anthropic as first option
 	providerNames := []string{anthropicProvider}
 
@@ -179,22 +202,21 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 func getProviderDisplayInfo(providerName string, provider config.ProviderConfig) (displayName, statusText string) {
 	if providerName == anthropicProvider {
 		displayName = anthropicName
-		statusText = "OAuth"
+		statusText = statusOAuth
 		return displayName, statusText
 	}
 
 	// External providers
-	if providerName == claudeCodeProvider {
+	switch providerName {
+	case claudeCodeProvider:
 		displayName = anthropicName
-	} else {
+	case glmProvider:
+		displayName = "GLM"
+	default:
 		displayName = providerName
 	}
 
-	if provider.Token != "" {
-		statusText = "API key"
-	} else {
-		statusText = "needs API key"
-	}
+	statusText = statusAPI
 
 	return displayName, statusText
 }

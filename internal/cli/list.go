@@ -126,7 +126,11 @@ func outputProvidersJSON(cfg *config.Config) error {
 		fmt.Printf(`"index": %d, `, i+1)
 		fmt.Printf(`"name": "%s", `, name)
 		fmt.Printf(`"displayName": "%s", `, displayName)
-		fmt.Printf(`"status": "%s", `, statusText)
+		if statusText == "API" {
+			fmt.Printf(`"status": "%s", `, statusText)
+		} else {
+			fmt.Printf(`"status": "OAuth", `)
+		}
 		fmt.Printf(`"isCurrent": %t`, cfg.Provider == name)
 
 		fmt.Printf("}")
