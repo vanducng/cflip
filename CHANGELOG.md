@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/vanducng/cflip/compare/v1.5.1...v1.5.2) (2025-12-15)
+
+
+### Bug Fixes
+
+* restructure CI/CD workflows to follow proper sequence ([3c9f292](https://github.com/vanducng/cflip/commit/3c9f2929a661e9a37a60e5ba466e1cc1e2c865bb))
+
 ## [1.5.1](https://github.com/vanducng/cflip/compare/v1.5.0...v1.5.1) (2025-12-15)
 
 
