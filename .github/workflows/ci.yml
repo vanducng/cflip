@@ -47,15 +47,7 @@ jobs:
           key: ${{ runner.os }}-go-v${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
           restore-keys: |
             ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
-
-      - name: Fix cache permissions
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          mkdir -p ~/.cache/go-build ~/go/pkg/mod
-          chmod -R 0755 \
-            ~/go/pkg/mod \
-            ~/.cache/go-build
+          fail-on-cache-miss: false
 
       - name: Download dependencies
         run: go mod download
@@ -118,15 +110,8 @@ jobs:
           key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
           restore-keys: |
             ${{ runner.os }}-go-lint-
-
-      - name: Fix cache permissions
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          mkdir -p ~/.cache/go-build ~/go/pkg/mod
-          chmod -R 0755 \
-            ~/go/pkg/mod \
-            ~/.cache/go-build
+            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
+          fail-on-cache-miss: false
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -161,16 +146,9 @@ jobs:
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
-            ${{ runner.os }}-go-
-
-      - name: Fix cache permissions
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          mkdir -p ~/.cache/go-build ~/go/pkg/mod
-          chmod -R 0755 \
-            ~/go/pkg/mod \
-            ~/.cache/go-build
+            ${{ runner.os }}-go-lint-
+            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
+          fail-on-cache-miss: false
 
       - name: Download dependencies
         run: go mod download
@@ -264,16 +242,10 @@ jobs:
             ~/go/pkg/mod
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Fix cache permissions
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          mkdir -p ~/.cache/go-build ~/go/pkg/mod
-          chmod -R 0755 \
-            ~/go/pkg/mod \
-            ~/.cache/go-build
+            ${{ runner.os }}-go-release-
+            ${{ runner.os }}-go-build-
+            ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
+          fail-on-cache-miss: false
 
       - name: Download dependencies
         run: go mod download

@@ -1,5 +1,6 @@
 # CFLIP - Claude Provider Switcher
 
+[![CI](https://github.com/vanducng/cflip/workflows/CI/badge.svg)](https://github.com/vanducng/cflip/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vanducng/cflip)](https://goreportcard.com/report/github.com/vanducng/cflip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Latest Release](https://img.shields.io/github/release/vanducng/cflip)](https://github.com/vanducng/cflip/releases)
