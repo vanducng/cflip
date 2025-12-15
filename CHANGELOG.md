@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/vanducng/cflip/compare/v1.6.4...v1.6.5) (2025-12-15)
+
+
+### Bug Fixes
+
+* use Formula directory for homebrew tap instead of Casks ([8b2b335](https://github.com/vanducng/cflip/commit/8b2b335c2999b2f36769b983c0d2f724f0380399))
+
 ## [1.6.4](https://github.com/vanducng/cflip/compare/v1.6.3...v1.6.4) (2025-12-15)
 
 
