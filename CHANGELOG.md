@@ -1,3 +1,19 @@
+# [1.6.0](https://github.com/vanducng/cflip/compare/v1.5.2...v1.6.0) (2025-12-15)
+
+
+### Bug Fixes
+
+* correct release detection regex to match commit subjects ([3104443](https://github.com/vanducng/cflip/commit/3104443de08c945d372bf1cecdd360fc987620c5))
+* resolve version assignment and formatting issues ([d4b16eb](https://github.com/vanducng/cflip/commit/d4b16ebaf122e2f77a3342bcd83ecdb6be35b79f))
+* resolve version redeclaration and add pre-commit checks ([58dba51](https://github.com/vanducng/cflip/commit/58dba510defabd96ea7b70f71155366fb3d757c8))
+
+
+### Features
+
+* add version command and display ([681ae00](https://github.com/vanducng/cflip/commit/681ae00b13983e2216a4a36e73a77225e585450f))
+* improve cache configuration and fix release pipeline ([50f5d8a](https://github.com/vanducng/cflip/commit/50f5d8ad6ee441ca4b6d66485f52a517a20b8c54))
+* refactor the release pipeline ([0e384af](https://github.com/vanducng/cflip/commit/0e384afd5d9c5fe13583b01db7107a88e206ae1e))
+
 ## [1.5.2](https://github.com/vanducng/cflip/compare/v1.5.1...v1.5.2) (2025-12-15)
 
 
