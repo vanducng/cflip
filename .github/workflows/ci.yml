@@ -170,6 +170,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean up npm artifacts
+        if: steps.semantic-release.outputs.new_release_published == 'true'
+        run: |
+          rm -rf node_modules package-lock.json
+          git checkout -- . || true
+
       - name: Set up Go
         if: steps.semantic-release.outputs.new_release_published == 'true'
         uses: actions/setup-go@v6
