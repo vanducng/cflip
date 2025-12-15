@@ -1,3 +1,11 @@
+# [1.10.0](https://github.com/vanducng/cflip/compare/v1.9.0...v1.10.0) (2025-12-15)
+
+
+### Features
+
+* add list command to show providers and current selection ([82170ce](https://github.com/vanducng/cflip/commit/82170ce76561b07d89ce71cfb07c671d2eec6df0))
+* remove API key prompt for Anthropic subscription plan ([a9b01d7](https://github.com/vanducng/cflip/commit/a9b01d78af92df6f366f71c741f94a43062357cb))
+
 # [1.9.0](https://github.com/vanducng/cflip/compare/v1.8.0...v1.9.0) (2025-12-15)
 
 
