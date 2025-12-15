@@ -62,14 +62,21 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            COMMITS=$(git log ${LAST_TAG}..HEAD --oneline | grep -E "^(feat|fix|perf|refactor|docs|style|test|chore)(\(.+\))?:" || true)
+            echo "Last tag: $LAST_TAG"
+            # Use --format=%s to get only commit subjects (not hashes)
+            COMMITS=$(git log ${LAST_TAG}..HEAD --format=%s | grep -E "^(feat|fix|perf|refactor|docs|style|test|chore)(\(.+\))?:" || true)
+            echo "Conventional commits found:"
+            echo "$COMMITS"
             if [ -n "$COMMITS" ]; then
               echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "Release will be triggered"
             else
               echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "No release needed"
             fi
           else
             echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Not a push to main, skipping release check"
           fi
 
   # Lint job - runs in parallel with test
