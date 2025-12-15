@@ -52,6 +52,7 @@ func addCommands() {
 	// Main commands
 	rootCmd.AddCommand(newSwitchCmd())
 	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(NewListCmd())
 }
 
 func init() {
