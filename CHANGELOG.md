@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/vanducng/cflip/compare/v1.6.1...v1.6.2) (2025-12-15)
+
+
+### Bug Fixes
+
+* clean npm artifacts before goreleaser to avoid dirty git state ([e09dbf2](https://github.com/vanducng/cflip/commit/e09dbf23a36866519bcab55f8dc6e30e690b14e3))
+
 ## [1.6.1](https://github.com/vanducng/cflip/compare/v1.6.0...v1.6.1) (2025-12-15)
 
 
