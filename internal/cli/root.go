@@ -49,8 +49,9 @@ func Execute(v, c, bt string) error {
 
 // addCommands adds all subcommands to the root command
 func addCommands() {
-	// Main commands - only switch for now
+	// Main commands
 	rootCmd.AddCommand(newSwitchCmd())
+	rootCmd.AddCommand(editCmd)
 }
 
 func init() {

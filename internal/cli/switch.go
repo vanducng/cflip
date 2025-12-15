@@ -17,6 +17,14 @@ const (
 	yesResponse       = "yes"
 )
 
+// getProviderPlanType returns the plan type for a provider
+func getProviderPlanType(providerName string) string {
+	if providerName == anthropicProvider {
+		return "Subscription Plan"
+	}
+	return "On-Demand Plan"
+}
+
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
 	Use:   "switch [provider]",
@@ -127,13 +135,17 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 			current = " [CURRENT]"
 		}
 
-		displayName := name
+		var displayName, planType string
 		if name == anthropicProvider {
-			displayName = "Anthropic (Official)"
+			displayName = "Anthropic"
+			planType = getProviderPlanType(name)
+		} else {
+			displayName = name
+			planType = getProviderPlanType(name)
 		}
 
 		provider := cfg.Providers[name]
-		fmt.Printf("  %d) %s%s", i+1, displayName, current)
+		fmt.Printf("  %d) %s%s - %s", i+1, displayName, current, planType)
 
 		if name != anthropicProvider {
 			if provider.Token != "" {
@@ -329,29 +341,23 @@ func generateClaudeSettings(cfg *config.Config) error {
 	homeDir, _ := os.UserHomeDir()
 	settingsPath := filepath.Join(homeDir, ".claude", "settings.json")
 
-	// Read existing settings
-	var settings map[string]interface{}
-	if _, err := os.ReadFile(settingsPath); err == nil {
-		// Parse existing JSON (simple parsing)
-		settings = make(map[string]interface{})
-		// For simplicity, we'll recreate the file structure
-
-		// Ensure env map exists
-		if settings["env"] == nil {
-			settings["env"] = make(map[string]string)
-		}
-	} else {
-		// Create new settings structure
-		settings = map[string]interface{}{
-			"env": make(map[string]string),
-		}
+	// Create snapshot before switching
+	cflipDir := filepath.Dir(settingsPath)
+	snapshotsDir := filepath.Join(cflipDir, "snapshots")
+	if err := CreateSnapshot(settingsPath, snapshotsDir, cfg.Provider); err != nil {
+		// Don't fail if snapshot fails, just log it
+		fmt.Printf("Warning: Failed to create snapshot: %v\n", err)
 	}
 
-	// Get env map
-	env, ok := settings["env"].(map[string]interface{})
-	if !ok {
-		env = make(map[string]interface{})
-		settings["env"] = env
+	// Clean up old snapshots (keep last 5)
+	if err := CleanupOldSnapshots(snapshotsDir, 5); err != nil {
+		fmt.Printf("Warning: Failed to cleanup old snapshots: %v\n", err)
+	}
+
+	// Load current settings with all attributes
+	settings, err := LoadSettings(settingsPath)
+	if err != nil {
+		return fmt.Errorf("failed to load current settings: %w", err)
 	}
 
 	// Clear existing Claude-related env vars
@@ -363,7 +369,7 @@ func generateClaudeSettings(cfg *config.Config) error {
 		"ANTHROPIC_DEFAULT_OPUS_MODEL",
 	}
 	for _, key := range keysToDelete {
-		delete(env, key)
+		delete(settings.Env, key)
 	}
 
 	// Configure based on provider
@@ -372,7 +378,7 @@ func generateClaudeSettings(cfg *config.Config) error {
 
 		// Only set API key if provided
 		if provider.Token != "" {
-			env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
+			settings.Env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
 		}
 
 		// Do NOT set ANTHROPIC_BASE_URL - use Claude Code default
@@ -382,50 +388,25 @@ func generateClaudeSettings(cfg *config.Config) error {
 		provider := cfg.Providers[cfg.Provider]
 
 		// Set required fields
-		env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
-		env["ANTHROPIC_BASE_URL"] = provider.BaseURL
+		settings.Env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
+		settings.Env["ANTHROPIC_BASE_URL"] = provider.BaseURL
 
 		// Set model mappings if available
 		if len(provider.ModelMap) > 0 {
 			if haikuModel, exists := provider.ModelMap["haiku"]; exists {
-				env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = haikuModel
+				settings.Env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = haikuModel
 			}
 			if sonnetModel, exists := provider.ModelMap["sonnet"]; exists {
-				env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = sonnetModel
+				settings.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = sonnetModel
 			}
 			if opusModel, exists := provider.ModelMap["opus"]; exists {
-				env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = opusModel
+				settings.Env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = opusModel
 			}
 		}
 	}
 
-	// For simplicity, write basic JSON structure
-	output := fmt.Sprintf(`{
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "env": {
-%s
-  }
-}`, formatEnvMap(env))
-
-	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0750); err != nil {
-		return fmt.Errorf("failed to create settings directory: %w", err)
-	}
-
-	// Write settings
-	if err := os.WriteFile(settingsPath, []byte(output), 0600); err != nil {
-		return fmt.Errorf("failed to write settings file: %w", err)
-	}
-
-	return nil
-}
-
-func formatEnvMap(env map[string]interface{}) string {
-	var lines []string
-	for k, v := range env {
-		lines = append(lines, fmt.Sprintf(`    %q: %q`, k, v))
-	}
-	return strings.Join(lines, ",\n")
+	// Save settings preserving all other fields
+	return SaveSettings(settingsPath, settings)
 }
 
 func displaySwitchSuccess(cfg *config.Config, providerName string, verbose bool) {
