@@ -72,7 +72,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             # Check for feat or fix commits since last release
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            COMMITS=$(git log ${LAST_TAG}..HEAD --oneline | grep -E "^(feat|fix|perf|refactor|docs|style|test|chore)(\(.+\))?:")
+            COMMITS=$(git log ${LAST_TAG}..HEAD --oneline | grep -E "^(feat|fix|perf|refactor|docs|style|test|chore)(\(.+\))?:" || true)
             if [ -n "$COMMITS" ]; then
               echo "should_release=true" >> $GITHUB_OUTPUT
             else
