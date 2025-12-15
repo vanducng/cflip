@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/vanducng/cflip/compare/v1.7.0...v1.8.0) (2025-12-15)
+
+
+### Features
+
+* always create snapshot before switching providers ([141324d](https://github.com/vanducng/cflip/commit/141324df4181537c5a9df2735875b3838b999bf8))
+
 # [1.7.0](https://github.com/vanducng/cflip/compare/v1.6.8...v1.7.0) (2025-12-15)
 
 
