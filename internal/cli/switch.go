@@ -192,69 +192,102 @@ func configureExternalProvider(cfg *config.Config, providerName string, verbose,
 
 	// Show current configuration status
 	if !quiet {
-		if provider.Token != "" {
-			fmt.Printf("Using existing API token\n")
-		}
+		showProviderStatus(provider)
 	}
 
-	// Prompt for token if not configured
-	if provider.Token == "" {
-		fmt.Printf("Enter %s API token: ", providerName)
-		bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-		if err != nil {
-			return fmt.Errorf("failed to read API token: %w", err)
-		}
-		fmt.Println() // New line after password input
-
-		token := strings.TrimSpace(string(bytePassword))
-		if token == "" {
-			return fmt.Errorf("API token cannot be empty")
-		}
-		provider.Token = token
+	// Configure token if needed
+	if err := configureToken(&provider, providerName); err != nil {
+		return err
 	}
 
-	// Show base URL status
-	if !quiet && provider.BaseURL != "" {
+	// Configure base URL if needed
+	if err := configureBaseURL(&provider, providerName); err != nil {
+		return err
+	}
+
+	// Configure model mappings if requested
+	if err := configureModelMappings(&provider); err != nil {
+		return err
+	}
+
+	cfg.SetProviderConfig(providerName, provider)
+	return nil
+}
+
+// showProviderStatus displays the current provider configuration status
+func showProviderStatus(provider config.ProviderConfig) {
+	if provider.Token != "" {
+		fmt.Printf("Using existing API token\n")
+	}
+	if provider.BaseURL != "" {
 		fmt.Printf("Using existing base URL\n")
 	}
+}
 
-	// Prompt for base URL if not configured
-	if provider.BaseURL == "" {
-		fmt.Printf("Enter %s base URL: ", providerName)
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
-
-		if input == "" {
-			return fmt.Errorf("base URL cannot be empty")
-		}
-		provider.BaseURL = input
+// configureToken prompts for and configures the API token
+func configureToken(provider *config.ProviderConfig, providerName string) error {
+	if provider.Token != "" {
+		return nil // Already configured
 	}
 
-	// Optionally configure model mappings
+	fmt.Printf("Enter %s API token: ", providerName)
+	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return fmt.Errorf("failed to read API token: %w", err)
+	}
+	fmt.Println() // New line after password input
+
+	token := strings.TrimSpace(string(bytePassword))
+	if token == "" {
+		return fmt.Errorf("API token cannot be empty")
+	}
+	provider.Token = token
+	return nil
+}
+
+// configureBaseURL prompts for and configures the base URL
+func configureBaseURL(provider *config.ProviderConfig, providerName string) error {
+	if provider.BaseURL != "" {
+		return nil // Already configured
+	}
+
+	fmt.Printf("Enter %s base URL: ", providerName)
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input == "" {
+		return fmt.Errorf("base URL cannot be empty")
+	}
+	provider.BaseURL = input
+	return nil
+}
+
+// configureModelMappings prompts for and configures model mappings
+func configureModelMappings(provider *config.ProviderConfig) error {
 	fmt.Printf("\nConfigure model mappings? (Y/n): ")
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(strings.ToLower(input))
 
-	if input == "" || input == "y" || input == yesResponse {
-		if provider.ModelMap == nil {
-			provider.ModelMap = make(map[string]string)
-		}
-
-		// Prompt for each category
-		categories := []string{"haiku", "sonnet", "opus"}
-		for _, category := range categories {
-			fmt.Printf("Enter model for %s category (optional): ", category)
-			input, _ := reader.ReadString('\n')
-			input = strings.TrimSpace(input)
-			if input != "" {
-				provider.ModelMap[category] = input
-			}
-		}
+	if !(input == "" || input == "y" || input == yesResponse) {
+		return nil // User declined
 	}
 
-	cfg.SetProviderConfig(providerName, provider)
+	if provider.ModelMap == nil {
+		provider.ModelMap = make(map[string]string)
+	}
+
+	// Prompt for each category
+	categories := []string{"haiku", "sonnet", "opus"}
+	for _, category := range categories {
+		fmt.Printf("Enter model for %s category (optional): ", category)
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input != "" {
+			provider.ModelMap[category] = input
+		}
+	}
 	return nil
 }
 
