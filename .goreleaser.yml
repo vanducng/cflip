@@ -134,11 +134,13 @@ release:
 
     You can verify the integrity of the downloaded files using the checksums.txt file.
 
-# Homebrew cask configuration (replaces deprecated brews)
+# Homebrew formula configuration
 homebrew_casks:
   - name: cflip
     homepage: https://github.com/vanducng/cflip
     description: "A CLI tool to switch between Claude models and providers"
+    # Use Formula directory (for CLI tools) instead of Casks (for GUI apps)
+    directory: Formula
     repository:
       owner: vanducng
       name: homebrew-tap
