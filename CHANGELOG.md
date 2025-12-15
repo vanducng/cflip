@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/vanducng/cflip/compare/v1.5.0...v1.5.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* improve API key persistence and fix CI cache error ([7ddc231](https://github.com/vanducng/cflip/commit/7ddc23194674928816e1dc3788cb9e33e2c89869))
+
 # [1.5.0](https://github.com/vanducng/cflip/compare/v1.4.1...v1.5.0) (2025-12-15)
 
 
