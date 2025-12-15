@@ -9,9 +9,14 @@ import (
 var (
 	// Build information injected at build time
 	version   = "dev"
-	Commit    = "unknown"
-	BuildTime = "unknown"
+	commit    = "unknown"
+	buildTime = "unknown"
 )
+
+// getVersion returns the formatted version string
+func getVersion() string {
+	return fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, buildTime)
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -22,17 +27,19 @@ Claude Code providers (Anthropic, GLM/z.ai, and future providers).
 
 It manages the ~/.claude/settings.json configuration file to toggle between
 different API endpoints and authentication methods.`,
-	Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, Commit, BuildTime),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-func Execute(v, commit, buildTime string) error {
+func Execute(v, c, bt string) error {
 	// Set build information (override version if provided)
 	if v != "" {
 		version = v
 	}
-	Commit = commit
-	BuildTime = buildTime
+	commit = c
+	buildTime = bt
+
+	// Set version on root command
+	rootCmd.Version = getVersion()
 
 	// Add subcommands
 	addCommands()
