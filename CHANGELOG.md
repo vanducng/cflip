@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/vanducng/cflip/compare/v1.8.0...v1.9.0) (2025-12-15)
+
+
+### Features
+
+* enhance snapshots and provider display ([efdb26f](https://github.com/vanducng/cflip/commit/efdb26f3fe2b6849a43ac6de37565b367b877ff2))
+
 # [1.8.0](https://github.com/vanducng/cflip/compare/v1.7.0...v1.8.0) (2025-12-15)
 
 
