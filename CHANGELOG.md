@@ -1,3 +1,10 @@
+## [1.6.7](https://github.com/vanducng/cflip/compare/v1.6.6...v1.6.7) (2025-12-15)
+
+
+### Bug Fixes
+
+* preserve Anthropic API key when switching providers ([d126802](https://github.com/vanducng/cflip/commit/d12680295e90bac654ed5a871c568f9b6cb533dc))
+
 ## [1.6.6](https://github.com/vanducng/cflip/compare/v1.6.5...v1.6.6) (2025-12-15)
 
 
