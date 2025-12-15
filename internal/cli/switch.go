@@ -16,16 +16,9 @@ import (
 const (
 	anthropicProvider  = "anthropic"
 	claudeCodeProvider = "claude-code"
+	anthropicName      = "Anthropic"
 	yesResponse        = "yes"
 )
-
-// getProviderPlanType returns the plan type for a provider
-func getProviderPlanType(providerName string) string {
-	if providerName == anthropicProvider {
-		return "Subscription Plan"
-	}
-	return "On-Demand Plan"
-}
 
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
@@ -142,9 +135,8 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 		}
 
 		displayName, statusText := getProviderDisplayInfo(name, cfg.Providers[name])
-		planType := getProviderPlanType(name)
 
-		fmt.Printf("  %d) %s%s - %s", i+1, displayName, current, planType)
+		fmt.Printf("  %d) %s%s", i+1, displayName, current)
 		if statusText != "" {
 			fmt.Printf(" (%s)", statusText)
 		}
@@ -186,30 +178,22 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 // getProviderDisplayInfo returns the display name and status text for a provider
 func getProviderDisplayInfo(providerName string, provider config.ProviderConfig) (displayName, statusText string) {
 	if providerName == anthropicProvider {
-		displayName = "Anthropic"
-		if provider.Token != "" {
-			statusText = "API key configured"
-		} else {
-			statusText = "no API key"
-		}
+		displayName = anthropicName
+		statusText = "OAuth"
 		return displayName, statusText
 	}
 
 	// External providers
 	if providerName == claudeCodeProvider {
-		displayName = "Anthropic - On-Demand Plan"
+		displayName = anthropicName
 	} else {
 		displayName = providerName
 	}
 
 	if provider.Token != "" {
-		statusText = "configured"
+		statusText = "API key"
 	} else {
-		if providerName == claudeCodeProvider {
-			statusText = "API key required"
-		} else {
-			statusText = "needs configuration"
-		}
+		statusText = "needs API key"
 	}
 
 	return displayName, statusText

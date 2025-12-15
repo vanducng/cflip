@@ -73,7 +73,6 @@ func outputProvidersText(cfg *config.Config) error {
 	for i, name := range providerNames {
 		isCurrent := cfg.Provider == name
 		displayName, statusText := getProviderDisplayInfo(name, cfg.Providers[name])
-		planType := getProviderPlanType(name)
 
 		// Format the output
 		prefix := "  "
@@ -81,7 +80,7 @@ func outputProvidersText(cfg *config.Config) error {
 			prefix = "→ "
 		}
 
-		fmt.Printf("%s%d) %s - %s", prefix, i+1, displayName, planType)
+		fmt.Printf("%s%d) %s", prefix, i+1, displayName)
 		if statusText != "" {
 			fmt.Printf(" (%s)", statusText)
 		}
@@ -122,20 +121,13 @@ func outputProvidersJSON(cfg *config.Config) error {
 	for i, name := range providerNames {
 		provider := cfg.Providers[name]
 		displayName, statusText := getProviderDisplayInfo(name, provider)
-		planType := getProviderPlanType(name)
 
 		fmt.Printf("    {")
 		fmt.Printf(`"index": %d, `, i+1)
 		fmt.Printf(`"name": "%s", `, name)
 		fmt.Printf(`"displayName": "%s", `, displayName)
-		fmt.Printf(`"planType": "%s", `, planType)
-		fmt.Printf(`"isCurrent": %t, `, cfg.Provider == name)
-
-		if statusText != "" {
-			fmt.Printf(`"status": "%s"`, statusText)
-		} else {
-			fmt.Printf(`"status": ""`)
-		}
+		fmt.Printf(`"status": "%s", `, statusText)
+		fmt.Printf(`"isCurrent": %t`, cfg.Provider == name)
 
 		fmt.Printf("}")
 
