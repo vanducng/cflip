@@ -98,7 +98,7 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 	}
 
 	// Generate Claude settings file
-	if err := generateClaudeSettings(cfg); err != nil {
+	if err := generateClaudeSettings(cfg, quiet); err != nil {
 		return fmt.Errorf("failed to generate Claude settings: %w", err)
 	}
 
@@ -303,6 +303,29 @@ func configureModelMappings(provider *config.ProviderConfig) error {
 	return nil
 }
 
+// detectCurrentProvider determines the current provider from settings
+func detectCurrentProvider(settings *ClaudeSettings) string {
+	if settings.Env == nil {
+		return "unknown"
+	}
+
+	if baseURL, exists := settings.Env["ANTHROPIC_BASE_URL"]; exists && baseURL != nil && baseURL != "" {
+		// External provider has base URL, try to identify which one
+		baseURLStr := fmt.Sprintf("%v", baseURL)
+		if strings.Contains(baseURLStr, "z.ai") || strings.Contains(baseURLStr, "glm") {
+			return "glm"
+		} else if strings.Contains(baseURLStr, "openai") || strings.Contains(baseURLStr, "azure") {
+			return "openai"
+		} else {
+			// Generic external provider
+			return "external"
+		}
+	}
+
+	// No base URL means Anthropic
+	return "anthropic"
+}
+
 func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
 	provider := cfg.Providers[anthropicProvider]
 
@@ -336,28 +359,35 @@ func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
 	return nil
 }
 
-func generateClaudeSettings(cfg *config.Config) error {
+func generateClaudeSettings(cfg *config.Config, quiet bool) error {
 	// Claude settings path
 	homeDir, _ := os.UserHomeDir()
 	settingsPath := filepath.Join(homeDir, ".claude", "settings.json")
-
-	// Create snapshot before switching
-	cflipDir := filepath.Dir(settingsPath)
-	snapshotsDir := filepath.Join(cflipDir, "snapshots")
-	if err := CreateSnapshot(settingsPath, snapshotsDir, cfg.Provider); err != nil {
-		// Don't fail if snapshot fails, just log it
-		fmt.Printf("Warning: Failed to create snapshot: %v\n", err)
-	}
-
-	// Clean up old snapshots (keep last 5)
-	if err := CleanupOldSnapshots(snapshotsDir, 5); err != nil {
-		fmt.Printf("Warning: Failed to cleanup old snapshots: %v\n", err)
-	}
 
 	// Load current settings with all attributes
 	settings, err := LoadSettings(settingsPath)
 	if err != nil {
 		return fmt.Errorf("failed to load current settings: %w", err)
+	}
+
+	// Create snapshot before switching (always, even if user edited manually)
+	cflipDir := filepath.Dir(settingsPath)
+	snapshotsDir := filepath.Join(cflipDir, "snapshots")
+
+	// Determine the current provider from existing settings
+	currentProvider := detectCurrentProvider(settings)
+
+	// Create snapshot with current provider name
+	if err := CreateSnapshot(settingsPath, snapshotsDir, currentProvider); err != nil {
+		// Don't fail if snapshot fails, just log it
+		if !quiet {
+			fmt.Printf("Warning: Failed to create snapshot: %v\n", err)
+		}
+	}
+
+	// Clean up old snapshots (keep last 5)
+	if err := CleanupOldSnapshots(snapshotsDir, 5); err != nil {
+		fmt.Printf("Warning: Failed to cleanup old snapshots: %v\n", err)
 	}
 
 	// Clear existing Claude-related env vars
