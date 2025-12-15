@@ -11,15 +11,15 @@ import (
 
 // Config represents the configuration structure
 type Config struct {
-	Provider  string                   `toml:"provider"`  // "anthropic" or external name
+	Provider  string                    `toml:"provider"` // "anthropic" or external name
 	Providers map[string]ProviderConfig `toml:"providers"`
 }
 
 // ProviderConfig represents a provider configuration
 type ProviderConfig struct {
 	// For external providers only
-	Token   string            `toml:"token,omitempty"`
-	BaseURL string            `toml:"base_url,omitempty"`
+	Token   string `toml:"token,omitempty"`
+	BaseURL string `toml:"base_url,omitempty"`
 
 	// Optional model mapping (external -> anthropic)
 	ModelMap map[string]string `toml:"model_map,omitempty"`
