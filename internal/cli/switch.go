@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,15 +20,12 @@ var switchCmd = &cobra.Command{
 file and generate the appropriate Claude settings for the specified provider.
 
 Available providers:
-  anthropic   - Official Anthropic Claude API (requires API key)
-  claude-code - Claude Code with subscription (uses 'claude /login')
-  glm         - GLM models by z.ai (requires API key)
+  anthropic - Official Anthropic Claude API (optional API key, uses default endpoint)
+  glm       - GLM models by z.ai (requires API key and base URL)
+  custom    - Any custom provider (requires API key and base URL)
 
-The configuration supports:
-- Multiple providers with different authentication methods
-- Centralized model management
-- Secure API key storage
-- Custom model mappings per category
+For external providers (glm, custom), you can optionally configure model mappings
+to map their models to Anthropic's model categories (haiku, sonnet, opus).
 
 If no provider is specified, you will be prompted to choose from the available options.`,
 	Args: cobra.MaximumNArgs(1),
@@ -38,12 +36,17 @@ func newSwitchCmd() *cobra.Command {
 	return switchCmd
 }
 
+// NewSwitchCmd exports the switch command
+func NewSwitchCmd() *cobra.Command {
+	return switchCmd
+}
+
 func runSwitch(cmd *cobra.Command, args []string) error {
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 
-	tomlManager := config.NewTOMLManagerV2()
-	cfg, err := tomlManager.LoadConfig()
+	// Load configuration
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -55,53 +58,45 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check if already using this provider
-	if cfg.Active.Provider == providerName {
+	if cfg.Provider == providerName {
 		if !quiet {
 			fmt.Printf("Already using %s provider\n", providerName)
 		}
 		return nil
 	}
 
-	// Get provider configuration
-	provider, err := cfg.GetProviderByName(providerName)
-	if err != nil {
-		return fmt.Errorf("provider '%s' not found", providerName)
-	}
-
-	// Handle authentication based on provider type
-	if provider.IsAPIKeyRequired() {
-		if err := handleAPIKeyAuthentication(provider, verbose, quiet); err != nil {
+	// Configure provider if needed
+	if providerName != "anthropic" {
+		if err := configureExternalProvider(cfg, providerName, verbose, quiet); err != nil {
 			return err
 		}
 	} else {
-		if err := handleSubscriptionAuthentication(provider, verbose, quiet); err != nil {
+		if err := configureAnthropicProvider(cfg, verbose, quiet); err != nil {
 			return err
 		}
 	}
 
-	// Create backup of current settings
-	if err := createClaudeBackup(cfg, verbose, quiet); err != nil && verbose {
-		fmt.Printf("\nWarning: Failed to create backup: %v\n", err)
-	}
-
 	// Switch provider
-	if err := switchProvider(tomlManager, providerName); err != nil {
-		return err
+	cfg.Provider = providerName
+
+	// Save configuration
+	if err := config.SaveConfig(cfg); err != nil {
+		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
 	// Generate Claude settings file
-	if err := generateClaudeSettings(tomlManager, providerName); err != nil {
+	if err := generateClaudeSettings(cfg); err != nil {
 		return fmt.Errorf("failed to generate Claude settings: %w", err)
 	}
 
 	if !quiet {
-		displaySwitchSuccess(provider, verbose)
+		displaySwitchSuccess(cfg, providerName, verbose)
 	}
 
 	return nil
 }
 
-func getProviderName(args []string, cfg *config.CFLIPConfig, verbose bool) (string, error) {
+func getProviderName(args []string, cfg *config.Config, verbose bool) (string, error) {
 	if len(args) > 0 {
 		return args[0], nil
 	}
@@ -109,28 +104,44 @@ func getProviderName(args []string, cfg *config.CFLIPConfig, verbose bool) (stri
 	return promptProviderSelection(cfg)
 }
 
-func promptProviderSelection(cfg *config.CFLIPConfig) (string, error) {
-	providers := cfg.Providers
-	providerNames := cfg.ListProviders()
+func promptProviderSelection(cfg *config.Config) (string, error) {
+	// Always include anthropic as an option
+	providerNames := []string{"anthropic"}
+
+	// Add configured external providers
+	for name := range cfg.Providers {
+		if name != "anthropic" {
+			providerNames = append(providerNames, name)
+		}
+	}
 
 	fmt.Println("Available providers:")
 	for i, name := range providerNames {
-		provider := providers[name]
 		current := ""
-		if cfg.Active.Provider == name {
+		if cfg.Provider == name {
 			current = " [CURRENT]"
 		}
 
-		fmt.Printf("  %d) %s - %s%s", i+1, provider.DisplayName, provider.Description, current)
+		displayName := name
+		if name == "anthropic" {
+			displayName = "Anthropic (Official)"
+		}
 
-		if provider.IsAPIKeyRequired() {
-			if provider.HasAPIKey() {
-				fmt.Printf(" (API key configured)")
+		provider := cfg.Providers[name]
+		fmt.Printf("  %d) %s%s", i+1, displayName, current)
+
+		if name != "anthropic" {
+			if provider.Token != "" {
+				fmt.Printf(" (configured)")
 			} else {
-				fmt.Printf(" (needs API key)")
+				fmt.Printf(" (needs configuration)")
 			}
 		} else {
-			fmt.Printf(" (subscription)")
+			if provider.Token != "" {
+				fmt.Printf(" (API key configured)")
+			} else {
+				fmt.Printf(" (no API key)")
+			}
 		}
 		fmt.Printf("\n")
 	}
@@ -153,203 +164,243 @@ func promptProviderSelection(cfg *config.CFLIPConfig) (string, error) {
 
 	// Check if input matches provider name directly
 	for _, name := range providerNames {
-		if strings.EqualFold(name, input) || strings.EqualFold(providers[name].DisplayName, input) {
+		if strings.EqualFold(name, input) {
 			return name, nil
 		}
+	}
+
+	// If it's a new provider name, add it
+	if input != "" {
+		fmt.Printf("Creating new provider '%s'\n", input)
+		return input, nil
 	}
 
 	return "", fmt.Errorf("invalid selection")
 }
 
-func handleAPIKeyAuthentication(provider *config.ProviderInfo, verbose, quiet bool) error {
+func configureExternalProvider(cfg *config.Config, providerName string, verbose, quiet bool) error {
 	if !quiet {
-		fmt.Printf("\nConfiguring %s (API Key Authentication)\n", provider.DisplayName)
+		fmt.Printf("\nConfiguring %s provider\n", providerName)
 	}
 
-	// Check if we already have a valid API key
-	if provider.HasAPIKey() {
-		if !quiet {
-			fmt.Printf("Using existing API key\n")
+	provider := cfg.Providers[providerName]
+
+	// Prompt for token if not configured
+	if provider.Token == "" {
+		fmt.Printf("Enter %s API token: ", providerName)
+		bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			return fmt.Errorf("failed to read API token: %w", err)
 		}
-		return nil
+		fmt.Println() // New line after password input
+
+		token := strings.TrimSpace(string(bytePassword))
+		if token == "" {
+			return fmt.Errorf("API token cannot be empty")
+		}
+		provider.Token = token
 	}
 
-	// Check if we can import from legacy settings
-	if existingKey := getLegacyAPIKey(); existingKey != "" {
-		fmt.Printf("Found existing API key in ~/.claude/settings.json\n")
+	// Prompt for base URL if not configured
+	if provider.BaseURL == "" {
+		fmt.Printf("Enter %s base URL: ", providerName)
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Use existing API key? (Y/n): ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+
+		if input == "" {
+			return fmt.Errorf("base URL cannot be empty")
+		}
+		provider.BaseURL = input
+	}
+
+	// Optionally configure model mappings
+	fmt.Printf("\nConfigure model mappings? (Y/n): ")
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(strings.ToLower(input))
+
+	if input == "" || input == "y" || input == "yes" {
+		if provider.ModelMap == nil {
+			provider.ModelMap = make(map[string]string)
+		}
+
+		// Prompt for each category
+		categories := []string{"haiku", "sonnet", "opus"}
+		for _, category := range categories {
+			fmt.Printf("Enter model for %s category (optional): ", category)
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+			if input != "" {
+				provider.ModelMap[category] = input
+			}
+		}
+	}
+
+	cfg.SetProviderConfig(providerName, provider)
+	return nil
+}
+
+func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
+	provider := cfg.Providers["anthropic"]
+
+	// Optionally configure API key for Anthropic
+	if !quiet && provider.Token == "" {
+		fmt.Printf("\nConfigure API key for Anthropic? (optional, Y/n): ")
+		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(strings.ToLower(input))
 
 		if input == "" || input == "y" || input == "yes" {
-			provider.SetAPIKey(existingKey)
-			if !quiet {
-				fmt.Printf("✓ Imported existing API key\n")
+			fmt.Printf("Enter Anthropic API key (optional): ")
+			bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+			if err != nil {
+				return fmt.Errorf("failed to read API key: %w", err)
 			}
-			return nil
+			fmt.Println() // New line after password input
+
+			token := strings.TrimSpace(string(bytePassword))
+			if token != "" {
+				provider.Token = token
+				cfg.SetProviderConfig("anthropic", provider)
+			}
 		}
-	}
-
-	// Prompt for new API key
-	fmt.Printf("Enter %s API key: ", provider.DisplayName)
-	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		return fmt.Errorf("failed to read API key: %w", err)
-	}
-	fmt.Println() // New line after password input
-
-	apiKey := strings.TrimSpace(string(bytePassword))
-	if apiKey == "" {
-		return fmt.Errorf("API key cannot be empty")
-	}
-
-	// Basic validation
-	if err := validateAPIKeyFormat(provider.Name, apiKey); err != nil && verbose {
-		fmt.Printf("Warning: %v\n", err)
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Continue anyway? (y/N): ")
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(strings.ToLower(input))
-		if input != "y" && input != "yes" {
-			return fmt.Errorf("cancelled by user")
-		}
-	}
-
-	provider.SetAPIKey(apiKey)
-	if !quiet {
-		fmt.Printf("✓ API key configured\n")
 	}
 
 	return nil
 }
 
-func handleSubscriptionAuthentication(provider *config.ProviderInfo, verbose, quiet bool) error {
-	if !quiet {
-		fmt.Printf("\nConfiguring %s (Subscription Authentication)\n", provider.DisplayName)
-		fmt.Printf("This provider uses your Claude subscription for authentication.\n\n")
+func generateClaudeSettings(cfg *config.Config) error {
+	// Claude settings path
+	homeDir, _ := os.UserHomeDir()
+	settingsPath := filepath.Join(homeDir, ".claude", "settings.json")
 
-		if provider.Auth.SetupInstructions != "" {
-			fmt.Printf("Setup Instructions:\n%s\n\n", provider.Auth.SetupInstructions)
+	// Read existing settings
+	var settings map[string]interface{}
+	if _, err := os.ReadFile(settingsPath); err == nil {
+		// Parse existing JSON (simple parsing)
+		settings = make(map[string]interface{})
+		// For simplicity, we'll recreate the file structure
+
+		// Ensure env map exists
+		if settings["env"] == nil {
+			settings["env"] = make(map[string]string)
 		}
-
-		fmt.Printf("Make sure you:\n")
-		fmt.Printf("  • Have an active Claude Pro or Max subscription\n")
-		fmt.Printf("  • Run 'claude /login' to authenticate\n")
-		fmt.Printf("  • Run 'claude /whoami' to verify your login\n\n")
-	}
-
-	return nil
-}
-
-func createClaudeBackup(cfg *config.CFLIPConfig, verbose, quiet bool) error {
-	// Use the legacy backup system for Claude settings
-	legacyManager := config.NewManager()
-
-	if !quiet {
-		fmt.Print("Creating backup of current Claude settings... ")
-	}
-
-	backup, err := legacyManager.CreateBackup()
-	if err != nil {
-		return err
-	}
-
-	if !quiet {
-		fmt.Printf("done (ID: %s)\n", backup.ID)
-	}
-
-	return nil
-}
-
-func switchProvider(tomlManager *config.TOMLManagerV2, providerName string) error {
-	return tomlManager.SetActiveProvider(providerName)
-}
-
-func generateClaudeSettings(tomlManager *config.TOMLManagerV2, providerName string) error {
-	cfg, err := tomlManager.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	provider, err := cfg.GetProviderByName(providerName)
-	if err != nil {
-		return err
-	}
-
-	// Create legacy Claude settings
-	legacyManager := config.NewManager()
-
-	// Map to legacy structure
-	legacySettings := &config.ClaudeSettings{
-		Env: make(map[string]string),
-	}
-
-	// Set authentication based on provider type
-	if provider.IsAPIKeyRequired() {
-		legacySettings.Env["ANTHROPIC_AUTH_TOKEN"] = provider.GetAPIKey()
-		legacySettings.Env["ANTHROPIC_BASE_URL"] = provider.Auth.BaseURL
 	} else {
-		// For subscription-based auth, we don't set these
-		// Claude Code CLI will handle authentication
-		legacySettings.Env["ANTHROPIC_BASE_URL"] = ""
-	}
-
-	// Set model mappings
-	for category, modelID := range cfg.Active.ModelMapping {
-		if model, err := cfg.GetModelConfig(modelID); err == nil {
-			envKey := fmt.Sprintf("ANTHROPIC_DEFAULT_%s_MODEL", strings.ToUpper(category))
-			legacySettings.Env[envKey] = model.ID
+		// Create new settings structure
+		settings = map[string]interface{}{
+			"env": make(map[string]string),
 		}
 	}
 
-	// Set additional environment variables
-	if provider.EnvVars != nil {
-		for key, value := range provider.EnvVars {
-			legacySettings.Env[key] = value
+	// Get env map
+	env, ok := settings["env"].(map[string]interface{})
+	if !ok {
+		env = make(map[string]interface{})
+		settings["env"] = env
+	}
+
+	// Clear existing Claude-related env vars
+	keysToDelete := []string{
+		"ANTHROPIC_AUTH_TOKEN",
+		"ANTHROPIC_BASE_URL",
+		"ANTHROPIC_DEFAULT_HAIKU_MODEL",
+		"ANTHROPIC_DEFAULT_SONNET_MODEL",
+		"ANTHROPIC_DEFAULT_OPUS_MODEL",
+	}
+	for _, key := range keysToDelete {
+		delete(env, key)
+	}
+
+	// Configure based on provider
+	if cfg.Provider == "anthropic" {
+		provider := cfg.Providers["anthropic"]
+
+		// Only set API key if provided
+		if provider.Token != "" {
+			env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
+		}
+
+		// Do NOT set ANTHROPIC_BASE_URL - use Claude Code default
+		// Do NOT set model mappings - use defaults
+
+	} else {
+		// External provider
+		provider := cfg.Providers[cfg.Provider]
+
+		// Set required fields
+		env["ANTHROPIC_AUTH_TOKEN"] = provider.Token
+		env["ANTHROPIC_BASE_URL"] = provider.BaseURL
+
+		// Set model mappings if available
+		if provider.ModelMap != nil {
+			if haikuModel, exists := provider.ModelMap["haiku"]; exists {
+				env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = haikuModel
+			}
+			if sonnetModel, exists := provider.ModelMap["sonnet"]; exists {
+				env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = sonnetModel
+			}
+			if opusModel, exists := provider.ModelMap["opus"]; exists {
+				env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = opusModel
+			}
 		}
 	}
 
-	// Set default timeout
-	if _, exists := legacySettings.Env["API_TIMEOUT_MS"]; !exists {
-		timeout := provider.Auth.TimeoutSeconds
-		if timeout == 0 {
-			timeout = 300
-		}
-		legacySettings.Env["API_TIMEOUT_MS"] = fmt.Sprintf("%d", timeout*1000)
+	// For simplicity, write basic JSON structure
+	output := fmt.Sprintf(`{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+%s
+  }
+}`, formatEnvMap(env))
+
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0750); err != nil {
+		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
-	return legacyManager.SaveSettings(legacySettings)
+	// Write settings
+	if err := os.WriteFile(settingsPath, []byte(output), 0600); err != nil {
+		return fmt.Errorf("failed to write settings file: %w", err)
+	}
+
+	return nil
 }
 
-func displaySwitchSuccess(provider *config.ProviderInfo, verbose bool) {
-	fmt.Printf("\n✓ Successfully switched to %s\n", provider.DisplayName)
-
-	// Show active models
-	cfg, _ := config.NewTOMLManagerV2().LoadConfig()
-	fmt.Printf("\nActive Models:\n")
-
-	for category, modelID := range cfg.Active.ModelMapping {
-		if model, err := cfg.GetModelConfig(modelID); err == nil {
-			fmt.Printf("  %s: %s", category, model.Name)
-			if model.MaxTokens > 0 {
-				fmt.Printf(" (max tokens: %d)", model.MaxTokens)
-			}
-			fmt.Printf("\n")
-		}
+func formatEnvMap(env map[string]interface{}) string {
+	var lines []string
+	for k, v := range env {
+		lines = append(lines, fmt.Sprintf(`    "%s": "%s"`, k, v))
 	}
+	return strings.Join(lines, ",\n")
+}
 
-	// Show authentication method
-	if provider.IsAPIKeyRequired() {
+func displaySwitchSuccess(cfg *config.Config, providerName string, verbose bool) {
+	fmt.Printf("\n✓ Successfully switched to %s\n", providerName)
+
+	if providerName == "anthropic" {
+		fmt.Printf("\nConfiguration: Using Anthropic with default endpoint\n")
+		if cfg.Providers["anthropic"].Token != "" {
+			fmt.Printf("Authentication: API Key configured\n")
+		} else {
+			fmt.Printf("Authentication: No API key (will use Claude Code subscription)\n")
+		}
+	} else {
+		provider := cfg.Providers[providerName]
+		fmt.Printf("\nConfiguration:\n")
+		fmt.Printf("  Base URL: %s\n", provider.BaseURL)
+		if provider.ModelMap != nil && len(provider.ModelMap) > 0 {
+			fmt.Printf("  Model Mappings:\n")
+			for category, model := range provider.ModelMap {
+				fmt.Printf("    %s: %s\n", category, model)
+			}
+		}
 		fmt.Printf("\nAuthentication: API Key\n")
-	} else {
-		fmt.Printf("\nAuthentication: Subscription (Claude Code CLI)\n")
-		fmt.Printf("Remember to run 'claude /login' if not already authenticated\n")
 	}
 
 	if verbose {
 		fmt.Printf("\nConfiguration saved to: %s\n", config.GetConfigPath())
-		fmt.Printf("Claude settings updated at: %s\n", config.GetLegacySettingsPath())
+		homeDir, _ := os.UserHomeDir()
+		fmt.Printf("Claude settings updated at: %s\n", filepath.Join(homeDir, ".claude", "settings.json"))
 	}
 }
-

@@ -40,13 +40,8 @@ func Execute(version, commit, buildTime string) error {
 
 // addCommands adds all subcommands to the root command
 func addCommands() {
-	// Main commands
+	// Main commands - only switch for now
 	rootCmd.AddCommand(newSwitchCmd())
-	rootCmd.AddCommand(newListCmd())
-	rootCmd.AddCommand(newStatusCmd())
-	rootCmd.AddCommand(newBackupCmd())
-	rootCmd.AddCommand(newOnboardCmd())
-	rootCmd.AddCommand(newConfigCmd())
 }
 
 func init() {
