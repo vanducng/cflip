@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -40,13 +41,25 @@ func initialModel(cfg *config.Config) model {
 	// Always include anthropic as first option
 	providerNames := []string{anthropicProvider}
 
-	// Add configured external providers in sorted order
-	var externalProviders []string
+	// Collect all unique external providers
+	providerSet := make(map[string]bool)
 	for name := range cfg.Providers {
 		if name != anthropicProvider {
-			externalProviders = append(externalProviders, name)
+			providerSet[name] = true
 		}
 	}
+
+	// Always include known providers
+	providerSet[claudeCodeProvider] = true
+	providerSet[glmProvider] = true
+
+	// Convert to slice and sort
+	var externalProviders []string
+	for name := range providerSet {
+		externalProviders = append(externalProviders, name)
+	}
+	sort.Strings(externalProviders)
+	providerNames = append(providerNames, externalProviders...)
 
 	// Convert to items
 	var items []item

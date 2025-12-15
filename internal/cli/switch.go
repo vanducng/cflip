@@ -69,12 +69,13 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// If no provider specified and in a terminal, use interactive mode
-	if providerName == "" && len(args) == 0 && isTerminal() {
-		if provider, err := RunInteractiveSelection(cfg); err == nil && provider != "" {
-			providerName = provider
+	// If no provider specified, use interactive mode
+	if providerName == "" && len(args) == 0 {
+		provider, err := RunInteractiveSelection(cfg)
+		if err != nil {
+			return fmt.Errorf("failed to select provider: %w", err)
 		}
-		// Fall through to text selection if interactive fails
+		providerName = provider
 	}
 
 	// Check if already using this provider
@@ -125,77 +126,10 @@ func getProviderName(args []string, cfg *config.Config, verbose bool) (string, e
 }
 
 func promptProviderSelection(cfg *config.Config) (string, error) {
-	// Try interactive selection first
-	if provider, err := RunInteractiveSelection(cfg); err == nil && provider != "" {
-		return provider, nil
-	}
-
-	// Fall back to simple text selection if interactive fails
-	return promptProviderSelectionText(cfg)
+	// Use interactive selection only
+	return RunInteractiveSelection(cfg)
 }
 
-// promptProviderSelectionText provides the original text-based selection
-func promptProviderSelectionText(cfg *config.Config) (string, error) {
-	// Always include anthropic as first option
-	providerNames := []string{anthropicProvider}
-
-	// Add configured external providers in sorted order
-	var externalProviders []string
-	for name := range cfg.Providers {
-		if name != anthropicProvider {
-			externalProviders = append(externalProviders, name)
-		}
-	}
-	// Sort external providers for consistent display
-	sort.Strings(externalProviders)
-	providerNames = append(providerNames, externalProviders...)
-
-	fmt.Println("Available providers:")
-	for i, name := range providerNames {
-		current := ""
-		if cfg.Provider == name {
-			current = " [CURRENT]"
-		}
-
-		displayName, statusText := getProviderDisplayInfo(name, cfg.Providers[name])
-
-		fmt.Printf("  %d) %s%s", i+1, displayName, current)
-		if statusText != "" {
-			fmt.Printf(" (%s)", statusText)
-		}
-		fmt.Printf("\n")
-	}
-
-	fmt.Print("\nSelect provider (1-?): ")
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("failed to read input: %w", err)
-	}
-
-	input = strings.TrimSpace(input)
-
-	// Try to convert number to provider name
-	for i, name := range providerNames {
-		if fmt.Sprintf("%d", i+1) == input {
-			return name, nil
-		}
-	}
-
-	// Check if input matches provider name directly
-	for _, name := range providerNames {
-		if strings.EqualFold(name, input) {
-			return name, nil
-		}
-	}
-
-	// If it's a new provider name, add it
-	if input != "" {
-		fmt.Printf("Creating new provider '%s'\n", input)
-		return input, nil
-	}
-
-	return "", fmt.Errorf("invalid selection")
 }
 
 // getProviderDisplayInfo returns the display name and status text for a provider
