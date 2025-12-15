@@ -39,7 +39,7 @@ builds:
       - -X main.builtBy=goreleaser
 
 archives:
-  - format: tar.gz
+  - id: default
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -48,10 +48,20 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
+    formats:
+      - tar.gz
+      - zip
+    # Use tar.gz for unix, zip for windows
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
+      - goos: linux
+        formats:
+          - tar.gz
+      - goos: darwin
+        formats:
+          - tar.gz
     files:
       - README.md
       - LICENSE
@@ -62,7 +72,7 @@ checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -124,22 +134,23 @@ release:
 
     You can verify the integrity of the downloaded files using the checksums.txt file.
 
-# Homebrew tap configuration
-brews:
-  - name: cflip
-    homepage: https://github.com/vanducng/cflip
-    description: "A CLI tool to switch between Claude models and providers"
-    repository:
-      owner: vanducng
-      name: homebrew-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    commit_author:
-      name: github-actions[bot]
-      email: 41898282+github-actions[bot]@users.noreply.github.com
-    goamd64: v1
-    test: |
-      system "#{bin}/cflip --version"
+# Homebrew tap configuration (disabled - requires HOMEBREW_TAP_GITHUB_TOKEN secret)
+# To enable: create a PAT with repo scope and add as HOMEBREW_TAP_GITHUB_TOKEN secret
+# brews:
+#   - name: cflip
+#     homepage: https://github.com/vanducng/cflip
+#     description: "A CLI tool to switch between Claude models and providers"
+#     repository:
+#       owner: vanducng
+#       name: homebrew-tap
+#       branch: main
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     commit_author:
+#       name: github-actions[bot]
+#       email: 41898282+github-actions[bot]@users.noreply.github.com
+#     goamd64: v1
+#     test: |
+#       system "#{bin}/cflip --version"
 
 # Docker images (temporarily disabled)
 # dockers:
