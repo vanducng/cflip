@@ -1,3 +1,10 @@
+## [1.6.8](https://github.com/vanducng/cflip/compare/v1.6.7...v1.6.8) (2025-12-15)
+
+
+### Bug Fixes
+
+* set version on root command at runtime to ensure version is displayed ([c4cb650](https://github.com/vanducng/cflip/commit/c4cb6500f813576254fbd348a314ab19273eb9f0))
+
 ## [1.6.7](https://github.com/vanducng/cflip/compare/v1.6.6...v1.6.7) (2025-12-15)
 
 
