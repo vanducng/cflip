@@ -1,3 +1,11 @@
+## [1.6.3](https://github.com/vanducng/cflip/compare/v1.6.2...v1.6.3) (2025-12-15)
+
+
+### Bug Fixes
+
+* pass HOMEBREW_TAP_GITHUB_TOKEN to goreleaser ([96e6f83](https://github.com/vanducng/cflip/commit/96e6f83fbf5d56d72849c1d2af4ed438206ebeb5))
+* update goreleaser config to fix deprecation warnings ([0b2c771](https://github.com/vanducng/cflip/commit/0b2c77120c462739625e5d6dce8734348925067d))
+
 ## [1.6.2](https://github.com/vanducng/cflip/compare/v1.6.1...v1.6.2) (2025-12-15)
 
 
