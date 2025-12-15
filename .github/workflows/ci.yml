@@ -8,6 +8,11 @@ on:
   # For triggering releases manually
   workflow_dispatch:
 
+# Cancel any in-progress run for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -44,6 +49,8 @@ jobs:
             ${{ runner.os }}-go-v${{ env.GO_VERSION }}-
 
       - name: Fix cache permissions
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           mkdir -p ~/.cache/go-build ~/go/pkg/mod
           chmod -R 0755 \
@@ -113,6 +120,8 @@ jobs:
             ${{ runner.os }}-go-lint-
 
       - name: Fix cache permissions
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           mkdir -p ~/.cache/go-build ~/go/pkg/mod
           chmod -R 0755 \
@@ -155,6 +164,8 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Fix cache permissions
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           mkdir -p ~/.cache/go-build ~/go/pkg/mod
           chmod -R 0755 \
@@ -256,6 +267,8 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Fix cache permissions
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           mkdir -p ~/.cache/go-build ~/go/pkg/mod
           chmod -R 0755 \
