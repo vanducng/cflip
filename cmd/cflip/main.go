@@ -7,14 +7,15 @@ import (
 	"github.com/vanducng/cflip/internal/cli"
 )
 
-// Build information
+// Build information - set by goreleaser ldflags
 var (
+	version   = "dev"
 	commit    = "unknown"
 	buildTime = "unknown"
 )
 
 func main() {
-	if err := cli.Execute("", commit, buildTime); err != nil {
+	if err := cli.Execute(version, commit, buildTime); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
