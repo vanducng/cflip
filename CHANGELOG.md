@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/vanducng/cflip/compare/v1.4.0...v1.4.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* update Anthropic models with latest capabilities ([8d0235f](https://github.com/vanducng/cflip/commit/8d0235f2c9df7832c57aba0c0e2e60b3952065a6))
+
 # [1.4.0](https://github.com/vanducng/cflip/compare/v1.3.2...v1.4.0) (2025-12-14)
 
 
