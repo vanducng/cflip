@@ -1,3 +1,16 @@
+# [1.11.0](https://github.com/vanducng/cflip/compare/v1.10.0...v1.11.0) (2025-12-15)
+
+
+### Bug Fixes
+
+* show all providers in interactive menu and remove Ctrl+C fallback ([21ccddf](https://github.com/vanducng/cflip/commit/21ccddf15c41d64e8dad576c7e7ab8eaa69eb8a1))
+
+
+### Features
+
+* add interactive menu with Bubble Tea & simplify display ([d1b1ca8](https://github.com/vanducng/cflip/commit/d1b1ca8fb1c3a533996a452f405a4367e22c706d))
+* improve UI/UX with compact interactive menu and simplified output ([0eea115](https://github.com/vanducng/cflip/commit/0eea115e2d2f96635274ba2040c503af6cac02fb))
+
 # [1.10.0](https://github.com/vanducng/cflip/compare/v1.9.0...v1.10.0) (2025-12-15)
 
 
