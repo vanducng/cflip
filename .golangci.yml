@@ -1,75 +1,76 @@
+version: "2"
 linters:
   enable:
     - bodyclose
+    - dupl
+    - goconst
+    - gocritic
+    - gocyclo
     - goprintffuncname
+    - gosec
     - misspell
     - nakedret
     - noctx
     - nolintlint
-    - staticcheck
     - unconvert
     - whitespace
-    - gosec
-    - goconst
-    - gocyclo
-    - dupl
-    - gocritic
-    - errcheck
-    - ineffassign
-    - unused
-
-linters-settings:
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-
-  gocyclo:
-    min-complexity: 15
-
-  dupl:
-    threshold: 100
-
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-
-  nolintlint:
-    allow-unused: true
-    require-explanation: false
-    require-specific: false
-
-  misspell:
-    locale: US
-
+  settings:
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+      enabled-tags:
+        - diagnostic
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 15
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: false
+      require-specific: false
+      allow-unused: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - errcheck
+          - gocyclo
+          - gosec
+        path: _test\.go
+      - linters:
+          - gosec
+        text: weak cryptographic primitive
+      - linters:
+          - govet
+        text: 'shadow: declaration of "err"'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
-
-    # Exclude known linter issues
-    - text: "weak cryptographic primitive"
-      linters:
-        - gosec
-
-    # Exclude shadow checking on err variables
-    - text: "shadow: declaration of \"err\""
-      linters:
-        - govet
-
-run:
-  timeout: 5m
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
