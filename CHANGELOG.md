@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/vanducng/cflip/compare/v1.6.0...v1.6.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* combine semantic-release and goreleaser in single workflow ([3686cef](https://github.com/vanducng/cflip/commit/3686cefb988ae583bc85224bf6162d3568f02a3f))
+
 # [1.6.0](https://github.com/vanducng/cflip/compare/v1.5.2...v1.6.0) (2025-12-15)
 
 
