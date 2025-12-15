@@ -270,7 +270,7 @@ func configureModelMappings(provider *config.ProviderConfig) error {
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(strings.ToLower(input))
 
-	if !(input == "" || input == "y" || input == yesResponse) {
+	if input != "" && input != "y" && input != yesResponse {
 		return nil // User declined
 	}
 
