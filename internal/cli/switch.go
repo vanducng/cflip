@@ -347,33 +347,12 @@ func detectCurrentProvider(settings *ClaudeSettings) string {
 }
 
 func configureAnthropicProvider(cfg *config.Config, verbose, quiet bool) error {
-	provider := cfg.Providers[anthropicProvider]
+	// No configuration needed for Anthropic subscription plan
+	// Users can optionally configure an API key later if needed
 
-	// Optionally configure API key for Anthropic
-	if !quiet {
-		if provider.Token == "" {
-			fmt.Printf("\nConfigure API key for Anthropic? (optional, Y/n): ")
-		} else {
-			fmt.Printf("\nUpdate API key for Anthropic? (current key configured, Y/n): ")
-		}
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(strings.ToLower(input))
-
-		if input == "" || input == "y" || input == yesResponse {
-			fmt.Printf("Enter Anthropic API key (optional): ")
-			bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-			if err != nil {
-				return fmt.Errorf("failed to read API key: %w", err)
-			}
-			fmt.Println() // New line after password input
-
-			token := strings.TrimSpace(string(bytePassword))
-			if token != "" {
-				provider.Token = token
-				cfg.SetProviderConfig("anthropic", provider)
-			}
-		}
+	if !quiet && verbose {
+		fmt.Println("\nNote: Using Anthropic subscription plan")
+		fmt.Println("No API key required - will use your Claude Code subscription")
 	}
 
 	return nil
