@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -100,7 +102,7 @@ func SaveSettings(settingsPath string, settings *ClaudeSettings) error {
 	return nil
 }
 
-// CreateSnapshot creates a snapshot of current settings
+// CreateSnapshot creates a snapshot of current settings, skipping if identical to latest
 func CreateSnapshot(settingsPath, snapshotsDir, provider string) error {
 	// Load current settings
 	settings, err := LoadSettings(settingsPath)
@@ -108,14 +110,20 @@ func CreateSnapshot(settingsPath, snapshotsDir, provider string) error {
 		return fmt.Errorf("failed to load settings for snapshot: %w", err)
 	}
 
-	// Create snapshot file name
-	timestamp := time.Now().Format("20060102-150405")
-	snapshotFile := filepath.Join(snapshotsDir, fmt.Sprintf("snapshot-%s-%s.json", provider, timestamp))
-
 	// Ensure snapshots directory exists
 	if err := os.MkdirAll(snapshotsDir, 0750); err != nil {
 		return fmt.Errorf("failed to create snapshots directory: %w", err)
 	}
+
+	// Check if the latest snapshot for this provider is identical
+	if isIdenticalToLatestSnapshot(snapshotsDir, provider, settings) {
+		// Skip creating duplicate snapshot
+		return nil
+	}
+
+	// Create snapshot file name
+	timestamp := time.Now().Format("20060102-150405")
+	snapshotFile := filepath.Join(snapshotsDir, fmt.Sprintf("snapshot-%s-%s.json", provider, timestamp))
 
 	// Save snapshot
 	return SaveSettings(snapshotFile, settings)
@@ -177,6 +185,98 @@ func CleanupOldSnapshots(snapshotsDir string, keepCount int) error {
 	}
 
 	return nil
+}
+
+// isIdenticalToLatestSnapshot checks if current settings match the latest snapshot for a provider
+func isIdenticalToLatestSnapshot(snapshotsDir, provider string, currentSettings *ClaudeSettings) bool {
+	// List all snapshots for this provider
+	snapshots, err := ListSnapshots(snapshotsDir)
+	if err != nil {
+		return false
+	}
+
+	// Filter snapshots by provider and sort by timestamp (descending)
+	var providerSnapshots []string
+	for _, snapshot := range snapshots {
+		if strings.HasPrefix(snapshot, fmt.Sprintf("snapshot-%s-", provider)) {
+			providerSnapshots = append(providerSnapshots, snapshot)
+		}
+	}
+
+	if len(providerSnapshots) == 0 {
+		return false // No snapshots yet
+	}
+
+	// Sort snapshots by timestamp (newest first)
+	sort.Slice(providerSnapshots, func(i, j int) bool {
+		// Extract timestamp from filename
+		timestampI := extractTimestampFromFilename(providerSnapshots[i])
+		timestampJ := extractTimestampFromFilename(providerSnapshots[j])
+		return timestampI > timestampJ
+	})
+
+	// Get the latest snapshot
+	latestSnapshotPath := filepath.Join(snapshotsDir, providerSnapshots[0])
+
+	// Load the latest snapshot
+	latestSettings, err := LoadSettings(latestSnapshotPath)
+	if err != nil {
+		return false
+	}
+
+	// Compare settings
+	return settingsEqual(currentSettings, latestSettings)
+}
+
+// extractTimestampFromFilename extracts timestamp from snapshot filename
+func extractTimestampFromFilename(filename string) string {
+	// Format: snapshot-provider-timestamp.json
+	parts := strings.Split(filename, "-")
+	if len(parts) >= 3 {
+		// Remove .json extension
+		timestamp := strings.Join(parts[2:], "-")
+		return strings.TrimSuffix(timestamp, ".json")
+	}
+	return ""
+}
+
+// settingsEqual compares two ClaudeSettings structs
+func settingsEqual(a, b *ClaudeSettings) bool {
+	// Compare schemas
+	if a.Schema != b.Schema {
+		return false
+	}
+
+	// Compare env maps
+	if len(a.Env) != len(b.Env) {
+		return false
+	}
+	for k, v := range a.Env {
+		if bv, exists := b.Env[k]; !exists || !compareValues(v, bv) {
+			return false
+		}
+	}
+
+	// Compare additional fields
+	if len(a.AdditionalFields) != len(b.AdditionalFields) {
+		return false
+	}
+	for k, v := range a.AdditionalFields {
+		if bv, exists := b.AdditionalFields[k]; !exists || !compareValues(v, bv) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// compareValues compares two interface{} values
+func compareValues(a, b interface{}) bool {
+	// Simple string comparison for common cases
+	if fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b) {
+		return true
+	}
+	return false
 }
 
 func findIndex(s string, sep rune) int {

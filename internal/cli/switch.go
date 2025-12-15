@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	anthropicProvider = "anthropic"
-	yesResponse       = "yes"
+	anthropicProvider  = "anthropic"
+	claudeCodeProvider = "claude-code"
+	yesResponse        = "yes"
 )
 
 // getProviderPlanType returns the plan type for a provider
@@ -118,15 +120,19 @@ func getProviderName(args []string, cfg *config.Config, verbose bool) (string, e
 }
 
 func promptProviderSelection(cfg *config.Config) (string, error) {
-	// Always include anthropic as an option
+	// Always include anthropic as first option
 	providerNames := []string{anthropicProvider}
 
-	// Add configured external providers
+	// Add configured external providers in sorted order
+	var externalProviders []string
 	for name := range cfg.Providers {
 		if name != anthropicProvider {
-			providerNames = append(providerNames, name)
+			externalProviders = append(externalProviders, name)
 		}
 	}
+	// Sort external providers for consistent display
+	sort.Strings(externalProviders)
+	providerNames = append(providerNames, externalProviders...)
 
 	fmt.Println("Available providers:")
 	for i, name := range providerNames {
@@ -135,30 +141,12 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 			current = " [CURRENT]"
 		}
 
-		var displayName, planType string
-		if name == anthropicProvider {
-			displayName = "Anthropic"
-			planType = getProviderPlanType(name)
-		} else {
-			displayName = name
-			planType = getProviderPlanType(name)
-		}
+		displayName, statusText := getProviderDisplayInfo(name, cfg.Providers[name])
+		planType := getProviderPlanType(name)
 
-		provider := cfg.Providers[name]
 		fmt.Printf("  %d) %s%s - %s", i+1, displayName, current, planType)
-
-		if name != anthropicProvider {
-			if provider.Token != "" {
-				fmt.Printf(" (configured)")
-			} else {
-				fmt.Printf(" (needs configuration)")
-			}
-		} else {
-			if provider.Token != "" {
-				fmt.Printf(" (API key configured)")
-			} else {
-				fmt.Printf(" (no API key)")
-			}
+		if statusText != "" {
+			fmt.Printf(" (%s)", statusText)
 		}
 		fmt.Printf("\n")
 	}
@@ -193,6 +181,38 @@ func promptProviderSelection(cfg *config.Config) (string, error) {
 	}
 
 	return "", fmt.Errorf("invalid selection")
+}
+
+// getProviderDisplayInfo returns the display name and status text for a provider
+func getProviderDisplayInfo(providerName string, provider config.ProviderConfig) (displayName, statusText string) {
+	if providerName == anthropicProvider {
+		displayName = "Anthropic"
+		if provider.Token != "" {
+			statusText = "API key configured"
+		} else {
+			statusText = "no API key"
+		}
+		return displayName, statusText
+	}
+
+	// External providers
+	if providerName == claudeCodeProvider {
+		displayName = "Anthropic - On-Demand Plan"
+	} else {
+		displayName = providerName
+	}
+
+	if provider.Token != "" {
+		statusText = "configured"
+	} else {
+		if providerName == claudeCodeProvider {
+			statusText = "API key required"
+		} else {
+			statusText = "needs configuration"
+		}
+	}
+
+	return displayName, statusText
 }
 
 func configureExternalProvider(cfg *config.Config, providerName string, verbose, quiet bool) error {
