@@ -134,8 +134,8 @@ release:
 
     You can verify the integrity of the downloaded files using the checksums.txt file.
 
-# Homebrew tap configuration
-brews:
+# Homebrew cask configuration (replaces deprecated brews)
+homebrew_casks:
   - name: cflip
     homepage: https://github.com/vanducng/cflip
     description: "A CLI tool to switch between Claude models and providers"
@@ -147,9 +147,6 @@ brews:
     commit_author:
       name: github-actions[bot]
       email: 41898282+github-actions[bot]@users.noreply.github.com
-    goamd64: v1
-    test: |
-      system "#{bin}/cflip --version"
 
 # Docker images (temporarily disabled)
 # dockers:
