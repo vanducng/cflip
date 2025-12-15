@@ -2,13 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
-  # For triggering releases manually
   workflow_dispatch:
 
-# Cancel any in-progress run for the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -21,7 +19,6 @@ env:
   GO_VERSION: '1.24'
 
 jobs:
-  # Test job - runs first
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -29,24 +26,14 @@ jobs:
       should_release: ${{ steps.changelog.outputs.should_release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5.3.0
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Cache Go modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
-          restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
@@ -73,9 +60,7 @@ jobs:
       - name: Check if release needed
         id: changelog
         run: |
-          # Check if there are any commits that would trigger a release
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            # Check for feat or fix commits since last release
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
             COMMITS=$(git log ${LAST_TAG}..HEAD --oneline | grep -E "^(feat|fix|perf|refactor|docs|style|test|chore)(\(.+\))?:" || true)
             if [ -n "$COMMITS" ]; then
@@ -93,28 +78,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5.3.0
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Cache Go modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-lint-${{ hashFiles('**/go.sum', '**/go.mod') }}
-          restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64.8
-          args: --timeout=5m
+          version: v2.6
 
   # Build job - runs after test and lint pass
   build:
@@ -127,10 +101,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5.3.0
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -176,21 +150,21 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: |
           npm install
-          npm install -g semantic-release@^23.0.0
+          npm install -g semantic-release@^25.0.0
 
       - name: Run Semantic Release
         id: semantic-release
@@ -219,30 +193,20 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5.3.0
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Cache Go modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-release-${{ hashFiles('**/go.sum', '**/go.mod') }}
-          restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: go mod download
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
