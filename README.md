@@ -23,7 +23,7 @@ curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.
 
 ### Install Specific Version
 ```bash
-curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash -s -- --version=v1.1.3
+curl -sSL https://raw.githubusercontent.com/vanducng/cflip/main/scripts/install.sh | bash -s -- --version=v1.6.0
 ```
 
 ### Other Options
